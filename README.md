@@ -91,14 +91,14 @@ The following files implement the environment:
 
 The MAMBRL agent is implemented in:
 
-- agents.py
+- controller.py: defines the multi-agent architecture
+- agents.py: defines the model-based agent for link-adaptation and the NBLA baseline
 
-The following files are required to run the diverse RL agents:
+The following files are required to run the experiments:
 
 - test_utils.py
 - wrappers.py
 - scenarios.py
-- controller.py
 
 ## How to cite this work
 
