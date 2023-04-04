@@ -61,9 +61,9 @@ There are four scripts for launching simulation experiments:
 - experiments_MAMBRL.py: runs the experiments using the proposed MBRL agent for link-adaptation in a MA architecture.
 
 And one script plot_results.py, that plots the NPUSCH transmission delays over time averaged over several learning episodes. For example ```python plot_results.py 3 1``` plots the following figure showing the NPUSCH transmission delay obtained with model-free RL agents:
-<img src="figures/1A_2000_10_B.png" align="center" width="100%"/> 
+<img src="figures/1A_2000_10_B.png" align="center" width="60%"/> 
 And ```python plot_results.py 1 1``` plots the following figure showing the delay obtained with the proposed MAMBRL controller:
-<img src="figures/OL_2000_10_B.png" align="center" width="100%"/> 
+<img src="figures/OL_2000_10_B.png" align="center" width="60%"/> 
 
 ## Project structure
 
