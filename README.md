@@ -4,7 +4,7 @@
 
 Source code of an NB-IoT environment and a multi-agent model-based RL (MAMBRL) agent for uplink transmission control in an NB-IoT access network. The environtment implements the OpenAI Gym https://github.com/openai/gym interface and interacts with Stable-Baselines RL agents https://github.com/hill-a/stable-baselines.
 
-<img src="img/carrier_diagram.png" align="center" width="100%"/>
+<img src="img/carrier_diagram.png" align="center" width="60%"/>
 
 The objective of the control agent is to schedule NB-IoT uplink transmissions determining their link-adaptation parameters. The MAMBRL agent can learn on the system in operation without any previous knowledge (online learning), and without degrading the performance of the system during the learning process. In contrast, model-free RL agents (such as DQN, PPO, etc) increase the transmission delay by several orders of magnitude during the initial stages of the learning episodes.
 
