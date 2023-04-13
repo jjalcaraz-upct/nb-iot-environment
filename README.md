@@ -2,11 +2,11 @@
 
 ## Description
 
-Source code of an NB-IoT environment and a multi-agent model-based RL (MAMBRL) agent for uplink transmission control in an NB-IoT access network. The environtment implements the OpenAI Gym https://github.com/openai/gym interface and interacts with Stable-Baselines RL agents https://github.com/hill-a/stable-baselines.
+Source code of an NB-IoT environment and a multi-agent model-based RL (MAMBRL) agent for uplink transmission control in an NB-IoT access network. The NB-IoT environtment implements the OpenAI Gym https://github.com/openai/gym interface and can interact with Stable-Baselines RL agents https://github.com/hill-a/stable-baselines.
 
 <img src="img/carrier_diagram.png" align="center" width="60%"/>
 
-The objective of the control agent is to schedule NB-IoT uplink transmissions determining their link-adaptation parameters. The MAMBRL agent can learn on the system in operation without any previous knowledge (online learning), and without degrading the performance of the system during the learning process. In contrast, model-free RL agents (such as DQN, PPO, etc) increase the transmission delay by several orders of magnitude during the initial stages of the learning episodes.
+The objective of the control agent is to schedule and determine the link-adaptation parameters of NB-IoT uplink transmissions. The MAMBRL agent can learn on the system in operation without any previous knowledge (online learning), and without noticeably degrading the performance of the system during the learning process. In contrast, model-free RL agents (such as DQN, PPO, etc) increase the transmission delay by several orders of magnitude during the initial stages of the learning episodes.
 
 ## Acknowledgements
 
@@ -49,7 +49,7 @@ pip install -e .
 
 ### Basic use
 
-The notebook [NBIoT_documentation.ipynb](NBIoT_documentation.ipynb) contains a step-by-step description of how to build an environment and run experiments with it using different agents including stable-baselines and our MAMBRL algorithm.
+The notebook [NBIoT_documentation.ipynb](NBIoT_documentation.ipynb) contains a step-by-step description of how to build a NB-IoT environment and run experiments with it using different agents including stable-baselines and our MAMBRL algorithm.
 
 ### Experiment scripts
 
