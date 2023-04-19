@@ -2,7 +2,7 @@
 
 ## Description
 
-Source code of a [Narrowband Internet of things](https://en.wikipedia.org/wiki/Narrowband_IoT) (NB-IoT) environment and a multi-agent model-based RL (MAMBRL) agent for uplink transmission control in an NB-IoT access network. The NB-IoT environtment implements the [OpenAI Gym](https://github.com/openai/gym) interface and can interact with [Stable-Baselines RL](https://github.com/hill-a/stable-baselines) agents.
+Source code of a [Narrowband Internet of things](https://en.wikipedia.org/wiki/Narrowband_IoT) (NB-IoT) environment and a multi-agent model-based RL (MAMBRL) agent for uplink transmission control in an NB-IoT access network. The NB-IoT environtment implements the [OpenAI Gym](https://github.com/openai/gym) interface and can interact with [Stable-Baselines](https://github.com/hill-a/stable-baselines) RL agents.
 
 <img src="img/carrier_diagram.png" align="center" width="60%"/>
 
