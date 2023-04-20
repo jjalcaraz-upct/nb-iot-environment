@@ -105,7 +105,7 @@ The following files are required to run the experiments:
 The code of this repository:
 
 @misc{net_slice,  
-    title={Network slicing environment},  
+    title={NB-IoT environment},  
     author={Juan J. Alcaraz},  
     howpublished = {\url{https://github.com/jjalcaraz-upct/nb-iot-environment/}},  
     year={2023}  
