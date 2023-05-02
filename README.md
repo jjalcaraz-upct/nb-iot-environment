@@ -18,7 +18,7 @@ This work was supported by Grant PID2020-116329GB-C22 funded by MCIN / AEI / 10.
 
 ### Requirements
 
-The enviroment requires Open-AI gym, Numpy and Pandas packages. The RL agents are provided by stable-baselines (version 2, which uses TensorFlow), and the scripts for plotting the results use scipy and matplotlib. The following versions of these packages are known to work fine with the environment:  
+The enviroment requires the OpenAI gym, Numpy and Pandas packages. The RL agents are provided by stable-baselines (version 2, which uses TensorFlow), and the scripts for plotting the results use scipy and matplotlib. The following versions of these packages are known to work fine with the environment:  
 
 gym==0.15.3  
 numpy==1.19.1  
