@@ -62,11 +62,11 @@ There are four scripts for launching simulation experiments:
 
 And two scripts plot_results.py and plot_multi_results.p, that plot the NPUSCH transmission delays over time averaged over several learning episodes. For example ```python plot_results.py 1 1``` plots the following figure showing the NPUSCH transmission delay obtained with model-free RL agents:
 
-<img src="figures/1A_2000_10_B.png" align="center" width="60%"/> 
+<img src="figures/1A_2000_10_B.png" align="center" width="50%"/> 
 
 And ```python plot_multi_results.py 1 1``` plots the following figure showing the delay obtained with the proposed MAMBRL controller:
 
-<img src="figures/OL_2000_10_B.png" align="center" width="60%"/> 
+<img src="figures/OL_2000_10_B.png" align="center" width="50%"/> 
 
 ## Project structure
 
