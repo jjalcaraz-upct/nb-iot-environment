@@ -200,19 +200,20 @@ carrier_i = user_vars * N_users +1
 
 class OnlineClassifierAgent(DummyAgent):
     '''agent that selects I_mcs, N_rep using an online learning algorithm'''
-    def __init__(self, dict, rng):
+    def __init__(self, dict, rng, tie_threshold = 0.05, grace_period = 200, split_confidence=1e-07):
         super().__init__(dict)
         self.rng = rng
-        self.classifier = HoeffdingTreeClassifier()
+        self.classifier = HoeffdingTreeClassifier(tie_threshold = tie_threshold, grace_period = grace_period, split_confidence = split_confidence)
         self.predictions = {}
         self.harq_ues = {}
         self.inputs = {}
         self.hits = []
-        self.fit_classifier = HoeffdingTreeClassifier()
+        self.fit_classifier = HoeffdingTreeClassifier(tie_threshold = tie_threshold, grace_period = grace_period, split_confidence = split_confidence)
         self.fit_predictions = {}
         self.fit_inputs = {}
         self.fit_hits = []
         self.action_method = self.get_action_learning
+        self.sample_counter = 0
         # self.total_time = 0.0
         # self.total_calls = 0
 
