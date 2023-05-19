@@ -221,9 +221,6 @@ class OnlineClassifierAgent(DummyAgent):
         '''executes the configured method'''
         action = self.action_method(obs, r, info, action)
         return action
-    
-    # def get_avg_time(self):
-    #     return self.total_time / self.total_calls
 
     def deactivate_learning(self):
         self.action_method = self.get_action_plain
