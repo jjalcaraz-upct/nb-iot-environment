@@ -112,6 +112,7 @@ The code of this repository:
 }
 
 The paper presenting the MAMBRL algorithm:
+
 @article{alcaraz2023transmission,
   title={Transmission Control in NB-IoT with Model-Based Reinforcement Learning},
   author={Alcaraz, Juan J and Losilla, Fernando and Gonzalez-Casta{\~n}o, Francisco-Javier},
