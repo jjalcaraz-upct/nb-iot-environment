@@ -6,7 +6,7 @@ Source code of a [Narrowband Internet of things](https://en.wikipedia.org/wiki/N
 
 <img src="img/carrier_diagram.png" align="center" width="60%"/>
 
-The objective of the control agent is to schedule and determine the link-adaptation parameters of NB-IoT uplink transmissions. The MAMBRL agent can learn on the system in operation without any previous knowledge (online learning), and without noticeably degrading the performance of the system during the learning process. In contrast, model-free RL agents (such as DQN, PPO, etc) increase the transmission delay by several orders of magnitude during the initial stages of the learning episodes.
+The objective of the control agent is to schedule and determine the link-adaptation parameters of NB-IoT uplink transmissions. The MAMBRL agent can learn on the system in operation without any previous knowledge (online learning), and without noticeably degrading the performance of the system during the learning process. In contrast, model-free RL agents (such as DQN, PPO, etc) increase the transmission delay by several orders of magnitude during the initial stages of the learning episodes. The MAMBRL algorithm and results of the simulation experiments are presented in the journal paper [Transmission Control in NB-IoT with Model-Based Reinforcement Learning](https://ieeexplore.ieee.org/abstract/document/10147823/).
 
 ## Acknowledgements
 
@@ -109,6 +109,15 @@ The code of this repository:
     author={Juan J. Alcaraz},  
     howpublished = {\url{https://github.com/jjalcaraz-upct/nb-iot-environment/}},  
     year={2023}  
+}
+
+The paper presenting the MAMBRL algorithm:
+@article{alcaraz2023transmission,
+  title={Transmission Control in NB-IoT with Model-Based Reinforcement Learning},
+  author={Alcaraz, Juan J and Losilla, Fernando and Gonzalez-Casta{\~n}o, Francisco-Javier},
+  journal={IEEE Access},
+  year={2023},
+  publisher={IEEE}
 }
 
 ## Licensing information
