@@ -16,46 +16,31 @@ set_global_parameters(N = 4, H = 40, Nc = 1)
 from numpy.random import default_rng
 from numpy import savez
 from scenarios import scenarios
-from system.system_creator import create_system
+from utils import create_system
 from data_agents import DummyAgent, scheduling_indexes, ce_selection_indexes, nprach_indexes, nprach_actions
 from controller import Controller
 from wrappers import BasicSchedulerWrapper, DiscreteActions
 import concurrent.futures as cf
-if 'stable_baselines3' in sys.modules:
-    from stable_baselines3 import DQN, PPO, A2C
-    from stable_baselines3.common.env_util import make_vec_env
-    algorithms = {
-    'PPO2':PPO, 
-    'A2C':A2C,
-    'DQN': DQN
-    }
-    print('stable-baselines 3 loaded')
-else:
-    from stable_baselines import DQN, A2C, PPO2
-    from stable_baselines.common.cmd_util import make_vec_env
-    algorithms = {
-    'PPO2':PPO2, 
-    'A2C':A2C,
-    'DQN': DQN
-    }
+from stable_baselines import ACER, ACKTR, DQN, A2C, PPO2
+from stable_baselines.common.cmd_util import make_vec_env
 import os
 import gym
 
-STEPS = 300_000 # 200_000
+STEPS = 300_000
 RUNS = 30
 PARALLEL = True
 PROCESSES = 30
-algo_list = ['DQN']
-# algo_list = ['PPO2', 'A2C', 'DQN']
-
-# STEPS = 10_000
-# RUNS = 2
-# PARALLEL = True
-# PROCESSES = 2
-# algo_list = ['ACER','TRPO','ACKTR']
-# scenario = '2000_10_012'
+algo_list = ['PPO2', 'A2C', 'DQN']
 
 run_list = list(range(RUNS))
+
+algorithms = {
+    'ACER': ACER,
+    'ACKTR': ACKTR,
+    'PPO2':PPO2, 
+    'A2C':A2C,
+    'DQN': DQN
+}
 
 # external agent:
 ext_agent_conf = {

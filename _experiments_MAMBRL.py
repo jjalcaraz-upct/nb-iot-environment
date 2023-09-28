@@ -17,17 +17,17 @@ from numpy.random import default_rng
 from numpy import savez
 from scenarios import scenarios
 from utils import create_system
-from data_agents import DummyAgent, RandomUserAgent, NBLAAgent, agents_conf
+from data_agents import DummyAgent, RandomUserAgent, OnlineClassifierAgent, agents_conf
 from controller import Controller
-from wrappers import BasicWrapper
+from wrappers import BasicWrapper, DiscreteActions
 import concurrent.futures as cf
 from stable_baselines import ACER, ACKTR, DQN, A2C, PPO2
 from stable_baselines.common.cmd_util import make_vec_env
 import os
 import gym
 
-STEPS_1 = 50_000 # 30_000
-STEPS_2 = 50_000 # 20_000
+STEPS_1 = 10_000 
+STEPS_2 = 50_000 # 30_000
 RUNS = 30
 PARALLEL = True
 PROCESSES = 30
@@ -48,7 +48,7 @@ class Evaluator():
     def __init__(self, scenario, algorithm):
         self.scenario = scenario
         self.algorithm = algorithm
-        self.path = f'./results/{scenario}/NBLA_{algorithm}/'
+        self.path = f'./results/{scenario}/OL_{algorithm}/'
         if not os.path.isdir(self.path):
             try:
                 os.makedirs(self.path)
@@ -68,12 +68,12 @@ class Evaluator():
         node, perf_monitor, _, _ = create_system(rng, conf)
 
         # online classifier agent
-        nbla_agent = NBLAAgent(agents_conf[1])
+        mcs_agent = OnlineClassifierAgent(agents_conf[1], rng)
         
         # create agents
         agents = [
             RandomUserAgent(agents_conf[0], rng),
-            nbla_agent,
+            mcs_agent,
             DummyAgent(agents_conf[2]),
             DummyAgent(agents_conf[3]),
             DummyAgent(agents_conf[4]),
@@ -85,6 +85,9 @@ class Evaluator():
         _ = controller.reset()
         # controller.run_until(STEPS_1)
         controller.run(STEPS_1)
+
+        # deactivate mcs learning
+        mcs_agent.deactivate_learning()
 
         # record the number of served users so far
         served_users_1 = perf_monitor.total_departures()
@@ -120,7 +123,7 @@ class Evaluator():
         served_users = [served_users_1, served_users_2]
 
         # now save the results
-        model_path = f'{self.path}/history_{STEPS_1}_{i}.npz'
+        model_path = f'{self.path}/history_{STEPS_2}_{i}.npz'
         savez(model_path, delay = perf_monitor.delay_history, connection = perf_monitor.connection_history, served_users = served_users)
         # node.brief_report()
 
