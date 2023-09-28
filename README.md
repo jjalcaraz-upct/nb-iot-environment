@@ -70,7 +70,7 @@ And ```python plot_multi_results.py 1 1``` plots the following figure showing th
 
 ## Project structure
 
-The following files implement the environment:  
+The the ./system folder contains the implementation of the environment which consistis of the following files:  
 
 - node_b.py  
 - carrier.py  
@@ -87,7 +87,8 @@ The following files implement the environment:
 - utils.py
 - parameters.py
 - perf_monitor.py
-- ./gym-system/gym_system/environment.py
+
+The ./gym-system folder contains the code for building a gym-compatible environment 
 
 The MAMBRL agent is implemented in:
 
@@ -96,7 +97,6 @@ The MAMBRL agent is implemented in:
 
 The following files are required to run the experiments:
 
-- test_utils.py
 - wrappers.py
 - scenarios.py
 
@@ -113,12 +113,12 @@ The code of this repository:
 
 The paper presenting the MAMBRL algorithm:
 
-@article{alcaraz2023transmission,
-  title={Transmission Control in NB-IoT with Model-Based Reinforcement Learning},
-  author={Alcaraz, Juan J and Losilla, Fernando and Gonzalez-Casta{\~n}o, Francisco-Javier},
-  journal={IEEE Access},
-  year={2023},
-  publisher={IEEE}
+@article{alcaraz2023transmission, 
+    title={Transmission Control in NB-IoT with Model-Based Reinforcement Learning}, 
+    author={Alcaraz, Juan J and Losilla, Fernando and Gonzalez-Casta{\~n}o, Francisco-Javier}, 
+    journal={IEEE Access},  
+    year={2023}, 
+    publisher={IEEE} 
 }
 
 ## Licensing information
