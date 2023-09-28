@@ -12,7 +12,7 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-from .utils import moving_average
+from system.utils import moving_average
 
 '''
 how to use this script:
