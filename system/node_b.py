@@ -38,17 +38,6 @@ def average(lst):
     else:
         return 0
     
-# auxiliary function
-def find_next_integer_index(lst, n):
-    """
-    Finds the smallest integer in the list 'lst' that is greater or equal than integer 'n' and its position
-    """
-    greater_integers = [(i, j) for j, i in enumerate(lst) if i >= n]
-    if greater_integers:
-        return min(greater_integers)
-    else:
-        return max(lst), len(lst)-1
-    
 def itbs_bl(itbs, bl):
     ''' returns the block size closest to bl using itbs or the most similar one'''
     imcs = Itbs_to_Imcs[itbs]
