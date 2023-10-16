@@ -84,8 +84,6 @@ class PerfMonitor:
             if self.animation:
                 self.frames.append(copy.deepcopy(self.histories))
         del self.ue_timestamp[ue_id]
-        del self.ue_delays[ue_id]
-        del self.ue_access_times[ue_id]
 
     def register_ue(self, ue):
         '''
