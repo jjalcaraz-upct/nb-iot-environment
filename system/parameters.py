@@ -8,48 +8,156 @@ Created on Oct 27, 2022
 @author: juanjosealcaraz
 
 """
+import numpy as np
 
 # global system parameters
 N_users = 4 # max number of users reported in the state
 Horizon = 40 # length of the carrier observation horizon in subframes
 N_carriers = 1 # number of carriers
+MAX_BUFFER = 600 # bits
+msg3_tbs_size = 88 # bits
+
+# Cell parameters
+''' Based on Hwang, Jeng-Kuang, Cheng-Feng Li, and Chingwo Ma. 
+"Efficient detection and synchronization of superimposed NB-IoT NPRACH preambles." 
+IEEE Internet of Things Journal 6.1 (2018): 1173-1182.'''
+N = -121.4 # Noise in dBm
+Tx_pw = 23 # dBm
+Gmax = 15 #dBi
+sigma_F = 8 # dB standard deviation of the log Normal fading
+maxRange = 10 # Km (maximum cell range)
+L_o = 0 # penetration loss (walls, ground, etc)
+F = 3 # Noise Figure in dB
+radius = 1/2
+
+max_p = 5 # MAX NPRACH PERIOD FOR RL AGENTS
+
+# CE level configuration values
+SRP = 35.0 # reference signal receive power dBm
+threshold_list = [-116, -115, -114, -113, -112, -110, -108, -106, -104, -102, -100, -98, 0]
+
+# the last value is used to eliminate levels, e.g.
+# CE_thresholds = [-102.5, 0] --> Only CE2 and CE1 (no CE0)
+# CE_thresholds = [0, 0] --> Only CE2 (neither CE1 nor CE0)
+max_th = len(threshold_list) - 1
+
+thr_to_thrI = {thr: i for i, thr in enumerate(threshold_list)}
+
+th_values = threshold_list[:-1]
+th_indexes = {}
+
+values_ = len(th_values)
+th_pairs = []
+for i, th_1 in enumerate(th_values):
+    if i == values_:
+        break
+    for j in range(i, values_):
+        th_0 = th_values[j]
+        th_pairs.append((th_1,th_0))
+        th_indexes[(th_1,th_0)] = [i, j]
+
+NPDCCH_sf = 8 # 4 number of consecutive NPDCCH subframes 
+
+thr_to_n_rep = { 
+    -116: 3, # 8
+    -115: 3, # 8
+    -114: 2, # 4
+    -113: 2, # 4
+    -112: 2, # 4
+    -111: 1, # 2
+    -110: 1, # 2
+    -109: 1, # 2
+    -108: 1, # 2
+}
+
+no_rep_th = -107
+
+# msg3 configuration for th_level computed using just nominal values
+msg_3_conf = {
+    -116: (2,1,16),
+    -115: (2,1,16),
+    -114: (2,1,16),
+    -113: (2,1,16),
+    -112: (2,1,8),
+    -111: (2,1,8),
+    -110: (2,1,8),
+    -108: (2,1,8),
+    -107: (2,1,4),
+    -106: (2,1,4),
+    -105: (2,1,4),
+    -104: (2,1,4),
+    -103: (2,1,2),
+    -102: (2,1,2),
+    -101: (2,1,2),
+}
+
+no_rep_msg3_th = -100
 
 # auxiliary function to set the global parameters
-def set_global_parameters(N = N_users, H = Horizon, Nc = N_carriers):
+def set_global_parameters(N_ = N_users, H = Horizon, Nc = N_carriers):
     global N_users, Horizon, N_carriers
-    N_users = N
+    N_users = N_
     Horizon = H
     N_carriers = Nc
 
-# system observation
-user_items = {
-    'connection_time': 0,
-    'loss': 1,
-    'sinr': 2,
-    'buffer': 3
+# ###################################################
+#                  OBSERVATION ITEMS
+# ###################################################
+
+obs_dict = { # [length, normalization constant]
+    'total_ues': [1, 100],
+    'connection_time': [N_users, 1000],
+    'loss': [N_users, 50],
+    'sinr': [N_users, 70],
+    'buffer': [N_users, 100],
+    'detection_ratios': [3, 1],
+    'colision_ratios': [3, 1],
+    'msg3_detection': [3, 1],
+    'NPUSCH_occupation': [1, 1],
+    'NPRACH_occupation': [1, 1],
+    'av_delay': [1, 10000],
+    'ues_per_CE': [3, 20],
+    'RAR_in': [3, 20],
+    'RAR_sent': [3, 20],
+    'RAR_detected': [3, 20],
+    'RAR_ids': [3, 20],
+    'NPDCCH_sf_left': [1, NPDCCH_sf],
+    'sc_C0': [1, 3],
+    'sc_C1': [1, 3],
+    'sc_C2': [1, 3],
+    'period_C0': [1, 7],
+    'period_C1': [1, 7],
+    'period_C2': [1, 7],
+    'th_C0': [1, values_],
+    'th_C1': [1, values_],
+    'distribution': [values_ + 1, 1],
+    'carrier_state': [Horizon, 1],
 }
 
-population_items = {
-    'total_ues': 0,
-    'ues_CE0': 1,
-    'ues_CE1': 2,
-    'ues_CE2': 3
-}
+NPRACH_items = [
+    'backoff',
+    'rar_window',
+    'mac_timer',
+    'transmax',
+    'panchor',
+    'th_C1',
+    'th_C0',
+    'period_C0',
+    'rep_C0',
+    'sc_C0',
+    'period_C1',
+    'rep_C1',
+    'sc_C1',
+    'period_C2',
+    'rep_C2',
+    'sc_C2'
+]
 
-RAR_items = {
-    'p_anchor': 0,
-    'rar_window': 1
-}
+# ###################################################
+#                  CONTROL ITEMS
+# ###################################################
 
-NPRACH_items = {
-    'period': 0,
-    'sc': 1,
-    'rep': 2,
-    'detections': 3
-}
-
-# system control
-control_items = { # [0, 0, 2, 0, 4, 2, 1, 2, 4, 2, 2, 12, 2, 0, 0, 1, 2, 2, 2, 3, 1]
+control_items = {
     'carrier': 0,
     'id': 1,
     'Imcs': 2,
@@ -72,12 +180,15 @@ control_items = { # [0, 0, 2, 0, 4, 2, 1, 2, 4, 2, 2, 12, 2, 0, 0, 1, 2, 2, 2, 3
     'sc_C1': 17,
     'period_C2': 18,
     'rep_C2': 19,
-    'sc_C2': 20
+    'sc_C2': 20,
+    'th_C1': 21,
+    'th_C0': 22
 }
 
-N_actions = 21
+N_actions = 23
 
 # max values
+
 control_max_values = {
     'carrier': [0,1],
     'id': [N_users-1, N_users-1],
@@ -87,25 +198,28 @@ control_max_values = {
     'N_ru': [7,7],
     'delay': [3,3],
     'sc': [3,3],
-    'Nrep': [7,7],
+    # 'Nrep': [7,7],
+    'Nrep': [4,4],
     'backoff': [12,12],
     'rar_window': [7,7],
     'mac_timer': [7,7],
     'transmax': [10,10],
     'panchor': [15,15],
-    'period_C0': [7,7],
+    'period_C0': [max_p,max_p],
     'rep_C0': [7,7],
     'sc_C0': [3,7],
-    'period_C1': [7,7],
+    'period_C1': [max_p,max_p],
     'rep_C1': [7,7],
     'sc_C1': [3,7],
-    'period_C2': [7,7],
+    'period_C2': [max_p,max_p],
     'rep_C2': [7,7],
-    'sc_C2': [3,7]
+    'sc_C2': [3,7],
+    'th_C1': [max_th,max_th],
+    'th_C0': [max_th,max_th]   
 }
 
 # default action values:
-control_default_values = { # [0, 0, 1, 0, 4, 0, 1, 2, 4, 2, 2, 12, 2, 0, 0, 1, 2, 2, 2, 3, 1]
+control_default_values = {
     'carrier': 0,
     'id': 0,
     'Imcs': 2,
@@ -115,50 +229,33 @@ control_default_values = { # [0, 0, 1, 0, 4, 0, 1, 2, 4, 2, 2, 12, 2, 0, 0, 1, 2
     'delay': 0,
     'sc': 3,
     'Nrep': 1,
-    'backoff': 2,
-    'rar_window': 4,
+    'backoff': 2, # should be larger than the largest NPRACH period
+    'rar_window': 6,
     'mac_timer': 2,
-    'transmax': 2,
+    'transmax': 4,
     'panchor': 12,
-    'period_C0': 2,
+    'period_C0': 3, # 3,
     'rep_C0': 0,
-    'sc_C0': 0,
-    'period_C1': 1,
-    'rep_C1': 2,
-    'sc_C1': 2,
-    'period_C2': 2,
-    'rep_C2': 3,
-    'sc_C2': 1
+    'sc_C0': 1,
+    'period_C1': 2, # 2,
+    'rep_C1': 0,
+    'sc_C1': 1, 
+    'period_C2': 3, # 3,
+    'rep_C2': 2,
+    'sc_C2': 1,
+    'th_C1': 4,
+    'th_C0': 8 # max_th # 0 --> No CE0
 }
 
-# CE parameters used by population
-SRP = 35.0 # reference signal receive power dBm
-CE_thresholds = [-103.0, -85.0] # adopted values
-# CE_thresholds = [-105.0, -85.0] # tentative values
-# CE_thresholds = [-110.0, -80.0] # tentative values
-# CE_thresholds = [-115.0, -85.0] # tentative values
-
-# system state dimension
-user_vars = len(user_items) # number of observed variables per UE
-population_vars = len(population_items)
-rar_vars = len(RAR_items)
-nprach_vars = len(NPRACH_items) # number of observed variables per CE level
-state_dim = N_users * user_vars + population_vars + rar_vars + nprach_vars * 3 + Horizon * N_carriers
-
-# subsets of state indexes 
-carrier_indexes = list(range(state_dim - Horizon * N_carriers, state_dim))
-scheduling_indexes = list(range(0, N_users * user_vars + 1)) + carrier_indexes
-ce_selection_indexes = list(range(N_users * user_vars + 1, N_users * user_vars + population_vars))
-nprach_indexes = list(range(N_users * user_vars + 1, state_dim - Horizon * N_carriers))
-
 # NODE B: NPDCCH parameters
-NPDCCH_period = 10 # 20,30 ... length of the NPDCCH period in subframes (NPDCCH is always located in the 1st subframe)
-NPDCCH_sf = 4 # number of consecutive NPDCCH subframes 
+
+NPDCCH_period = 20 # 30, 10 ... length of the NPDCCH period in subframes (NPDCCH is always located in the 1st subframe)
 NPDCCH_sf_per_CE = [1, 2, 4] # NPDCCH repetitions per CE level
-CE_for_NPDCCH_sf_left = [0, 0, 1, 1, 2] # max CE level allowed given the NPDCCH sf left
+CE_for_NPDCCH_sf_left = [0, 0, 1, 1, 2, 2, 2, 2, 2] # max CE level allowed given the NPDCCH sf left
 
 # NODE B: NPRACH parameters
-NPRACH_update_period = 100 * NPDCCH_period
+
+NPRACH_update_period = 100 * NPDCCH_period #
 
 # NODE B: auxiliary dictionary for automatic selection of sc 
 N_sc_selection_list = {
@@ -191,16 +288,6 @@ sf_delay_list = [8, 16, 32, 64] # delay in subframes (Table 7.15)
 N_sc_list = [1, 3, 6, 12] # number of subcarriers per RU (Table 7.16)
 N_sf_list = [8, 4, 2, 1] # number of sf per RU (Table 7.29) Warning: 2 slots = 1 sf
 
-# TBS_table = [
-#     [16, 24, 32, 40, 56, 72, 88, 104, 120, 136, 144, 176, 208, 224], 
-#     [32, 56, 72, 104, 120, 144, 176, 224, 256, 296, 328, 376, 440, 488],
-#     [56, 88, 144, 176, 208, 224, 256, 328, 392, 456, 504, 584, 680, 744],
-#     [88, 144, 176, 208, 256, 328, 392, 472, 536, 616, 680, 776, 1000, 1128],
-#     [120, 176, 208, 256, 328, 424, 504, 584, 680, 776, 872, 1000, 1128, 1256],
-#     [152, 208, 256, 328, 408, 504, 600, 712, 808, 936, 1000, 1096, 1384, 1544],
-#     [208, 256, 328, 440, 552, 680, 808, 1000, 1096, 1256, 1384, 1608, 1800, 2024],
-#     [256, 344, 424, 568, 680, 872, 1000, 1224, 1384, 1544, 1736, 2024, 2280, 2536]
-#     ] # Transport Block Size table TBS_table[I_ru][I_tbs] (Table 7.18)
 
 TBS_table = [[16, 32, 56, 88, 120, 152, 208, 256],
              [24, 56, 88, 144, 176, 208, 256, 344],
@@ -236,7 +323,8 @@ RAR_WindowSize_list = [2,3,4,5,6,7,8,10] # duration of RAR window in NPDCCH peri
 MAC_timer_list = [1,2,3,4,8,16,32,64] # duration of contention resolution timer in NPDCCH periods (Table 6.2)
 preamble_trans_max_CE_list = [3,4,5,6,7,8,10,20,50,100,200] # maximum number of preamble transmissions before moving to an upper CE level (Table 6.2)
 
-NPRACH_periodicity_list = [40, 80, 160, 240, 320, 640, 1280, 2560] # in ms (Table 6.3)
+# NPRACH_periodicity_list = [40, 80, 160, 240, 320, 640, 1280, 2560] # in ms (Table 6.3)
+NPRACH_periodicity_list = [80, 160, 240, 320, 640, 1280, 2560] # in ms (Table 6.3)
 NPRACH_N_sc_list = [[12, 24, 36, 48],  # total number of 3.75 subcarriers of a NRACH resource (Table 6.3)
                     [12, 24, 36, 48, 60, 72, 84, 96], # one anchor + one non-anchor carrier
                     [12, 24, 36, 48, 60, 72, 84, 96, 108, 120, 132, 144] # one anchor + 2 non-anchor carriers
@@ -247,47 +335,34 @@ probability_anchor = [
                     1/9, 1/8, 1/7, 1/6, 1/5, 1/4, 1/3, 1/2
                     ]
 
-# Funtions used by the Node B to generate the state
-# for ue selection
-def ue_state(time, selectable_ues, total_ues):
-    state = [0] * state_dim
-    i = 0
-    for ue in selectable_ues:
-        state[i] = min(1.0, (time - ue.t_connection)/1000.0) # connection time in sf
-        state[i + 1] = min(1.0, max(0.0, (ue.loss - 100)/50)) # loss
-        state[i + 2] = 0 # 0 if new data
-        state[i + 3] = ue.buffer
-        if not ue.new_data:
-            sinr = min(max(ue.sinr, -40),30) # [-40, 30]
-            state[i + 2] = min(1.0, (40 + sinr)/70) # normalized sinr if HARQ retransmission
-        i += user_vars
-    state[N_users * user_vars] = min(1.0, total_ues/100) # position 12
-    return state
+# configurable NPRACH parameters
+top_i = max_p + 1
+period_list = NPRACH_periodicity_list[:top_i] # [80, 160, 240, 320, 640, 1280, 2560] # in ms (Table 6.3)
+N_sc_list = [nsc_//4 for nsc_ in NPRACH_N_sc_list[0]] # [12, 24, 36, 48] --> [3, 6, 9, 12]
 
-# for CE selection in rar window
-def rar_state(ues_per_CE):
-    state = [0] * state_dim
-    i = N_users * user_vars + 1
-    for ce, ues in enumerate(ues_per_CE):
-        state[i + ce] = min(1.0, ues / 20.0)
-    return state
+# number of subrames of each NPRACH
+NPRACH_N_sf_list = [int(np.ceil(N_rep * 5.6)) for N_rep in N_rep_preamble_list]
 
-# for NPRACH configuration
-def nprach_state(NPRACH_conf, NPRACH_detections, n_c):
-    state = [0] * state_dim
-    i = N_users * user_vars + population_vars # 16
-    state[i] = NPRACH_conf['p_anchor']
-    state[i + 1] = NPRACH_conf['rar_window'] / 7.0
-    i = i + rar_vars # 18
-    for ce in range(3):
-        d = NPRACH_detections[ce]
-        mean_d = sum(d) / max(1,len(d))
-        period = NPRACH_conf[ce]['periodicity']
-        scs = NPRACH_conf[ce]['subcarriers']
-        reps = NPRACH_conf[ce]['repetitions']
-        N_scs_list = NPRACH_N_sc_list[n_c]
-        state[i + ce * nprach_vars] = 1.0 - period / 7.0
-        state[i + ce * nprach_vars + 1] = scs / len(N_scs_list)
-        state[i + ce * nprach_vars + 2] = reps / 7.0
-        state[i + ce * nprach_vars + 3] = min(1.0, mean_d / N_scs_list[scs]) 
-    return state
+def compute_NPRACH_sf(th_C1, th_C0):
+    '''
+    Computes the number of subframes of the NPRACH for each CE level 
+    based on the RSRP thresholds that determine the CE levels
+    '''
+    min_th = threshold_list[0]
+    rep_C2 = thr_to_n_rep[min_th]
+    sf_c2 = NPRACH_N_sf_list[rep_C2]
+    if th_C1 < no_rep_th:
+        th_C1 = max(min_th, th_C1)
+        rep_C1 = thr_to_n_rep[th_C1]
+    else:
+        rep_C1 = 0
+    sf_c1 = NPRACH_N_sf_list[rep_C1]
+    if th_C0 < no_rep_th:
+        th_C0 = max(min_th, th_C0)
+        rep_C0 = thr_to_n_rep[th_C0]
+    else:
+        rep_C0 = 0
+    sf_c0 = NPRACH_N_sf_list[rep_C0]
+    if th_C0 == 0 or th_C1 == th_C0: # only two CE levels: CE1 and CE2
+        sf_c0 = 0
+    return [sf_c0, sf_c1, sf_c2]

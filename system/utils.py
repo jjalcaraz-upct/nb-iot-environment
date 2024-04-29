@@ -11,46 +11,8 @@ Created on Jan 13, 2022
 
 import subprocess
 from pathlib import Path
-import numpy as np
-from scipy import stats
-from .parameters import control_items, control_max_values, control_default_values, state_dim, N_carriers, Horizon
 
-max_values = [v[N_carriers-1] for k,v in control_max_values.items() if k not in ['ce_level', 'rar_Imcs']] #  if k not in ['id', 'Imcs']
-min_values = state_dim*[0]
-
-action_basic = [v for k,v in control_default_values.items() if k not in ['ce_level', 'rar_Imcs']] # 
-
-def generate_random_action(rng):
-    return rng.integers(low = min_values, high = max_values)
-
-carrier_i = control_items['carrier']
-id_i = control_items['id']
-sc_i = control_items['sc']
-
-def generate_reasonable_action(rng, o):
-    action = action_basic
-    if N_carriers > 1:
-        c0 = sum(o[range(state_dim - 2*Horizon, state_dim - Horizon)])
-        c1 = sum(o[range(state_dim - Horizon, state_dim)])
-        if c1 < c0:
-            action[carrier_i] = 1
-    action[id_i] = 0
-    action[sc_i] = rng.integers(4) # subcarriers
-    return action
-
-def confidence_interval(data, confidence=0.95):
-    a = 1.0 * np.array(data)
-    n = len(a)
-    m, se = np.mean(a), stats.sem(a)
-    h = se * stats.t.ppf((1 + confidence) / 2., n-1)
-    return m, h
-
-def moving_average(values, window):
-    weights = np.repeat(1.0, window)/window
-    sma = np.convolve(values, weights, 'valid')
-    return sma
-
-# video creation
+# auxiliary function
 def ffmpeg_movie(frames_dir: Path, movie_dir: Path, framerate: int = 15) -> None:
     image_pattern = frames_dir / '*png'
     print(image_pattern)
@@ -89,3 +51,11 @@ def find_next_integer_index(lst, n):
         return min(greater_integers)
     else:
         return max(lst), len(lst)-1
+    
+def read_flag_from_file(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            flag = file.read().strip()
+            return flag.lower() == 'true'
+    except FileNotFoundError:
+        return False

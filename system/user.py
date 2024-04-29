@@ -42,6 +42,7 @@ class UE:
     t_arrival: int = 0 # arrival time
     ra_attempts: int = 0 # random access attempts in this CE_level
     preamble: int = 0 # selected ra preamble
+    rar_w_id: int = 0 # identifier of the RAR window
     # prob_anchor: float = 0.0 # probability of selecting non-anchor carrier
     
     # performance variables

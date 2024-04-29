@@ -13,7 +13,7 @@ Created on Jan 24, 2022
 
 from .user import STATE, UE, UE_states
 from .event_manager import Event, subscribe, schedule_event
-from .parameters import CE_thresholds, SRP
+from .parameters import SRP
 
 # # UE STATES
 # RAO = 0 # waiting for a random access opportunity
@@ -26,6 +26,7 @@ from .parameters import CE_thresholds, SRP
 # CONNECTED = 7 # msg4 received (needs an UL grant for a scheduling request)
 # DATA = 8 # in data transmission (waiting for an UL grant for data) 
 
+DEBUG = False
 
 class Population:
     '''
@@ -37,6 +38,8 @@ class Population:
     def __init__(self, rng, m, levels = [0,1,2]):
         self.rng = rng
         self.m = m
+        self.CE_thresholds = [-102.5, -85.0] # default values
+        self.CE_losses = [SRP + 85, SRP + 102.5, SRP + 122.5]
         self.levels = levels # levels considered in the simulation
         self.m.set_population(self)
 
@@ -78,14 +81,18 @@ class Population:
             CE_level = -1
             while CE_level not in self.levels:
                 self.m.channel.set_xy_loss(ue)
-                P_RSRP = SRP - ue.loss
-                if P_RSRP < CE_thresholds[0]:
+                P_RSRP = SRP - ue.loss # SRP from .parameters
+                if P_RSRP < self.CE_thresholds[0]:
                     CE_level = 2
-                elif P_RSRP < CE_thresholds[1]:
+                elif P_RSRP < self.CE_thresholds[1]:
                     CE_level = 1
                 else:
                     CE_level = 0
             ue.CE_level = CE_level
+            # if DEBUG:
+            #     if ue.CE_level == 2:
+            #         state = UE_states[ue.state]
+            #         print(f'{t}: ue {ue.id} arrives with state {state} (POPULATION)')
             self.ra_lists[ue.CE_level].append(ue)
             self.m.perf_monitor.arrival(ue.CE_level)
 
@@ -102,6 +109,8 @@ class Population:
         ue = event.ue
         ue.state = STATE.RAO
         ue.backoff_counter += 1
+        if DEBUG:
+            print(f' POPULATION backoff expiration UE: {ue.id} window {ue.rar_w_id}')
         del event
 
     def MAC_timeout(self, event):
@@ -111,6 +120,7 @@ class Population:
         '''
         ue_id_contention = self.contention_ues.keys()
         timeout_ue_ids = [u_i for u_i in event.ue_id_list if u_i in ue_id_contention]
+        # POPULATION UEs that timed out: {timeout_ue_ids}
         for ue_id in timeout_ue_ids:
             ue = self.contention_ues.pop(ue_id)
             ue.state = STATE.RAO
@@ -120,7 +130,7 @@ class Population:
     
     ############## methods invoked by AccessProcedure ################
 
-    def NPRACH_start(self, CE_level, t):
+    def NPRACH_start(self, CE_level, t, c):
         '''
         method used by AccessProcedure upon NPRACH_start to get UEs in RAO state 
         and put them in RA state
@@ -130,8 +140,16 @@ class Population:
         RAO_users = (ue for ue in self.ra_lists[CE_level] if ue.state == STATE.RAO)
         ra_ues = []
         for ue in RAO_users:
+            ue.rar_w_id = c
             ue.state = STATE.RA
             ra_ues.append(ue)
+        
+        # if DEBUG:
+        #     ra_list = [0, 0, 0]
+        #     for ce in range(3):
+        #         ra_list[ce] = len(self.ra_lists[ce])
+        #     print(f'POPULATION: NPRACH CE{CE_level}, ra: {ra_list}')
+
         return ra_ues
     
     ############## methods invoked by NodeB ################
@@ -140,12 +158,17 @@ class Population:
         '''
         method used by the Node B to notify the outcome of a msg3 transmission.
         '''
-        self.contention_ues.pop(ue_id)
+        if DEBUG:
+            print(f' connected ue {ue_id}')
+
+        self.contention_ues.pop(ue_id) # the node b now has this ue
 
     def msg3_grant(self, CE_level, t, t_msg3_end, I_tbs = 1, N_rep = 2): # msg3_grant(CE_level, reference_time, t_ul_end, I_tbs = I_tbs, N_rep = N_rep)
         '''
-        method used by NodeB to allocate resources for a msg3 UL transmission 
+        method used by NodeB to allocate resources for a msg3 UL transmission
+        corresponds to msg2 reception
         '''
+
         contention_list = []
         preamble = -1
 
@@ -155,8 +178,15 @@ class Population:
             ue.t_contention = t
             contention_list.append(ue)
     
+
+        if DEBUG:
+            ra_list = [0, 0, 0]
+            for ce in range(3):
+                ra_list[ce] = len(self.ra_lists[ce])
+            print(f'POPULATION: msg3 CE{CE_level}, ra before: {ra_list}')
+
         RAR_ues = (ue for ue in self.ra_lists[CE_level] if ue.state in [STATE.CAPTURE, STATE.RAR])
-        
+
         for i, ue in enumerate(RAR_ues):
             if i == 0:
                 preamble = ue.preamble              
@@ -169,9 +199,9 @@ class Population:
         
         for ue in contention_list:
             self.ra_lists[CE_level].remove(ue) # no longer in random access
-            # print(f' -- ue id: {ue.id} removed from random access ')
             self.contention_ues[ue.id] = ue # now in contention resolution (connection request)
-            # print(f' -- contention list contains ue ids: {self.contention_ues.keys()}')
+
+        # POPULATION msg3 grant received at t = {t}
         
         # (if contention list has any element, which it should)
         # create msg3 and mac_timer events and schedule them
@@ -182,14 +212,34 @@ class Population:
             timer_event = Event('MAC_timer', ue_id_list = [ue.id for ue in contention_list])
             t_exp = max(t + self.MAC_timer, t_msg3_end + 1)
             schedule_event(t_exp, timer_event) # schedule timer
+        
+        if DEBUG:
+            ra_list = [0, 0, 0]
+            for ce in range(3):
+                ra_list[ce] = len(self.ra_lists[ce])
+            contenders = len(self.contention_ues)
+            print(f'POPULATION: msg3 CE{CE_level}, ra after: {ra_list}, contenders: {contenders}')
 
-    def RAR_window_end(self, t, CE_level, backoff):
+    def RAR_window_end(self, t, CE_level, backoff, rar_w_id):
         '''
-        method invoked by NodeB when the RAR window of a specific CE_level has finished.
-        Notifies the max backoff value, so that the UEs whose preambles have not been 
+        method invoked by NodeB when the RAR window of a specific CE_level and RAR window ide
+        has finished. Notifies the max backoff value, so that the UEs whose preambles have not been 
         detected will start their backoff periods
         '''
-        unidentified_ues = (ue for ue in self.ra_lists[CE_level] if ue.state not in [STATE.RAO, STATE.BACKOFF])
+
+        # POPULATION RAR window end 
+
+        unidentified_ues = [ue for ue in self.ra_lists[CE_level] if ue.state not in [STATE.RAO, STATE.BACKOFF] and ue.rar_w_id == rar_w_id]
+        
+        if DEBUG:
+            print(f'POPULATION: RAR window end CE{CE_level} window_id: {rar_w_id}')
+            print('  RA list:')
+            for ue in self.ra_lists[CE_level]:
+                print(f'   ue {ue.id} CE{CE_level} state = {ue.state} window = {ue.rar_w_id}')
+            print('  unidentified:')
+            for ue in unidentified_ues:
+                print(f'   ue {ue.id} CE{CE_level} state = {ue.state} window = {ue.rar_w_id}')
+        
         for ue in unidentified_ues:
             ue.state = STATE.BACKOFF
             ue.ra_attempts += 1
@@ -209,7 +259,16 @@ class Population:
                 else:                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
                     e_time = t + backoff_time
                     schedule_event(e_time, backoff_event)
+                    # print(f' POPULATION backoff with time {backoff_time} scheduled for ue: {ue.id}')
+            if DEBUG:
+                print(f' ue {ue.id} CE{ue.CE_level} BACKOFF set to {e_time}')
 
+        # UE_states = ['RAO', 'BACKOFF', 'RA', 'RAR', 'CAPTURE', 'COLLIDED', 'CONREQ', 'CONNECTED', 'DATA', 'DONE']
+        n = len(unidentified_ues)
+        if DEBUG:
+            print(f'n = {n}')
+
+        return n
 
     def update_ra_parameters(self, MAC_timer = 64, preamble_trans_max_CE = 2, probability_anchor = 0):
         '''
@@ -218,6 +277,16 @@ class Population:
         self.preamble_trans_max = preamble_trans_max_CE
         self.m.access_procedure.probability_anchor = probability_anchor
         self.MAC_timer = MAC_timer
+
+    def update_CE_thresholds(self, th_C1, th_C0):
+        '''
+        method used by NodeB to update the CE thresholds of the cell
+        '''
+        self.CE_thresholds = [th_C1, th_C0]
+        # loss_CE0 = max(121.4, min(171.4, SRP - th_C0))
+        # loss_CE1 = max(121.4, min(171.4, SRP - th_C1))
+        # loss_CE2 = max(121.4, min(171.4, SRP - th_C1 + 20))
+        # self.CE_losses = [loss_CE0, loss_CE1, loss_CE2]
 
     def report_ue_states(self):
         print(' POPULATION RA_list')

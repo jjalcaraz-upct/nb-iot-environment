@@ -14,25 +14,31 @@ import numpy as np
 import matplotlib.pyplot as plt
 from itertools import product
 from os import remove
+from . import parameters as par
 from .utils import generate_movie
 from .event_manager import schedule_event, Event
-from .parameters import NPRACH_periodicity_list, NPRACH_N_sc_list, N_rep_preamble_list, Horizon, N_carriers
 
-# resource configurations
-resource_arrangements = [
-    [0,1,2],
-    [1,0,2],
-    [0,2,1],
-    [2,0,1],
-    [1,2,0],
-    [2,1,0]
-]
+DEBUG = False
+# from .parameters import NPRACH_periodicity_list, NPRACH_N_sc_list, N_rep_preamble_list, Horizon, N_carriers
+
+# colormap = matplotlib.cm.gist_rainbow  # Can be any colormap that you want after the cm
+# colormap.set_bad(color = 'white')
+
+# # resource configurations
+# resource_arrangements = [
+#     [2,1,0],
+#     [1,0,2],
+#     [0,2,1],
+#     [2,0,1],
+#     [1,2,0],
+#     [0,1,2]
+# ]
 
 # convert from preamble repetitions to subframes
-NPRACH_N_sf_list = [int(np.ceil(N_rep * 5.6)) for N_rep in N_rep_preamble_list]
+NPRACH_N_sf_list = [int(np.ceil(N_rep * 5.6)) for N_rep in par.N_rep_preamble_list]
 
 # conversion dictionaries
-N_rep_to_N_sf = dict([(N_rep, int(np.ceil(N_rep * 5.6))) for N_rep in N_rep_preamble_list])
+N_rep_to_N_sf = dict([(N_rep, int(np.ceil(N_rep * 5.6))) for N_rep in par.N_rep_preamble_list])
 N_sf_to_N_rep = {value:key for key, value in N_rep_to_N_sf.items()} 
 
 # useful dictionaries for UL grant insertion
@@ -61,11 +67,11 @@ default_conf_1 = [2, 1, 0]    # 160, 2, 12
 default_conf_2 = [2, 2, 0]    # 160, 4, 12
 
 # min lookahead for the carrier
-MIN_SPAN = Horizon # observed subframes defined in parameters.py
-N_carriers = N_carriers # number of subcarriers defined in parameters.py
+MIN_SPAN = par.Horizon # observed subframes defined in parameters.py
+N_carriers = par.N_carriers # number of subcarriers defined in parameters.py
 # print(f' >> carrier.py: N_carriers = {N_carriers}')
 
-# auxiliary function
+# auxiliary functions
 def minpass(mymarks, mypass):
     passed = (x for x in mymarks if x >= mypass)
     min_value = next(passed) # this consumes the first value
@@ -73,6 +79,193 @@ def minpass(mymarks, mypass):
         if x < min_value:
             min_value = x
     return min_value
+
+def find_indexes(lst, value):
+    """
+    Find the indexes of elements in a list that are equal to a given value,
+    and also find indexes of elements that are not equal to that value.
+
+    Parameters:
+    lst (list): The list to search in.
+    value: The value to find in the list.
+
+    Returns:
+    tuple of lists: (indexes_equal, indexes_not_equal)
+        indexes_equal: A list of indexes where the elements are equal to the given value.
+        indexes_not_equal: A list of indexes where the elements are not equal to the given value.
+    """
+    indexes_equal = []
+    indexes_not_equal = []
+    for index, elem in enumerate(lst):
+        if elem == value:
+            indexes_equal.append(index)
+        else:
+            indexes_not_equal.append(index)
+    return indexes_equal, indexes_not_equal
+
+def sort_indexes(L1, L2, L3):
+    """
+    Sort indexes based on the values in three lists (L1, L2, L3).
+
+    The sorting is done first by the values in L1, then L2, and finally L3.
+    It is assumed that L1, L2, and L3 are of the same length.
+
+    Parameters:
+    L1, L2, L3 (list): Input lists.
+
+    Returns:
+    list: Sorted indexes based on the criteria.
+    """
+
+    if not (len(L1) == len(L2) == len(L3)):
+        raise ValueError("All lists must be of the same length")
+
+    # Creating a list of indexes
+    indexes = list(range(len(L1)))
+
+    # Sorting the indexes based on the values in L1, then L2, and finally L3
+    sorted_indexes = sorted(indexes, key=lambda i: (L1[i], L2[i], L3[i]))
+
+    return sorted_indexes
+
+def compute_offsets(periods, N_sfs, N_scs):
+    '''
+    computes the offsets in subframes and in subcarriers for arranging 
+    all the NPRACH resources without overlapping and also corrects the periodidicy
+    if required
+    periods: in subframes between NPRACHs
+    N_sfs: subframes of each NPRACH
+    N_scs: 
+    '''
+    sc_offsets = [0, 0, 0]
+    sf_offsets = [0, 0, 0]
+    # sf_offsets = [0, N_sfs[0], N_sfs[0]+N_sfs[1]]
+    # sf_offsets = [N_sfs[1]+N_sfs[2], N_sfs[2], 0]
+    min_length = sum(N_sfs)
+    critical_per, normal_per = find_indexes(periods, 240)
+    if len(critical_per) == 1 and max(N_sfs) > 80:
+        i = critical_per[0]
+        j = normal_per[0]
+        k = normal_per[1]
+        if N_scs[i] + max(N_scs[j], N_scs[k]) > 12:
+            # print('ERROR: N_scs[i] + max(N_scs[j], N_scs[k]) > 12')
+            return periods, sc_offsets, sf_offsets, False
+        if sum(N_scs) > 12:
+            # arangement
+            # i
+            # j k
+            min_length = max((N_sfs[j]+N_sfs[k]), N_sfs[i])
+            sc_offsets[i] = 0
+            sc_offsets[j] = N_scs[i]
+            sc_offsets[k] = N_scs[i]
+            sf_offsets[i] = 0
+            sf_offsets[j] = 0
+            sf_offsets[k] = N_sfs[j]
+        else:
+            # arangement
+            # i
+            # j
+            # k   
+            min_length =  N_sfs[2]           
+            sf_offsets = [0, 0, 0]
+            sc_offsets[i] = 0
+            sc_offsets[j] = N_scs[i]
+            sc_offsets[k] = N_scs[i] + N_scs[j]
+
+    elif len(critical_per) == 2 and max(N_sfs) > 80:
+        i = critical_per[0]
+        j = critical_per[1]
+        k = normal_per[0]
+        if N_scs[k] + max(N_scs[i], N_scs[j]) > 12:
+            # error
+            return periods, sc_offsets, sf_offsets, False
+        if sum(N_scs) > 12:
+            # arangement
+            # i j
+            # k
+            min_length = max((N_sfs[i]+N_sfs[j]), N_sfs[k])
+            sc_offsets[i] = 0
+            sc_offsets[j] = 0
+            sc_offsets[k] = max(N_scs[i], N_scs[j])
+            sf_offsets[i] = 0
+            sf_offsets[j] = N_sfs[i]
+            sf_offsets[k] = 0
+        else:
+            # arangement
+            # i
+            # j
+            # k
+            min_length =  N_sfs[2]   
+            sf_offsets = [0, 0, 0]  
+            sc_offsets[i] = 0
+            sc_offsets[j] = N_scs[i]
+            sc_offsets[k] = N_scs[i] + N_scs[j]
+    else:
+        if sum(N_scs) > 12:
+            # Check several options
+            # 2 
+            # 1 0
+            if N_scs[2] + max(N_scs[1], N_scs[0]) <= 12:
+                min_length = N_sfs[2] + N_sfs[0]
+                sc_offsets[0] = N_scs[2]
+                sc_offsets[1] = N_scs[2]
+                sc_offsets[2] = 0
+                sf_offsets[0] = N_sfs[1]
+                sf_offsets[1] = 0
+                sf_offsets[2] = 0
+            elif N_scs[2] + N_scs[1] <= 12:
+                min_length = N_sfs[2] + N_sfs[0]
+                sc_offsets[0] = 0
+                sc_offsets[1] = N_scs[2]
+                sc_offsets[2] = 0
+                sf_offsets[0] = N_sfs[2]
+                sf_offsets[1] = 0
+                sf_offsets[2] = 0
+            # 2 1 
+            #   0
+            elif N_scs[1] + N_scs[0] <= 12:
+                min_length = N_sfs[2] + N_sfs[1]
+                sc_offsets[0] = N_scs[1]
+                sc_offsets[1] = 0
+                sc_offsets[2] = 0
+                sf_offsets[0] = N_sfs[2]
+                sf_offsets[1] = N_sfs[2]
+                sf_offsets[2] = 0
+            # 2 1 
+            # 0
+            elif N_scs[2] + N_scs[0] <= 12:
+                min_length = N_sfs[2] + N_sfs[1]
+                sc_offsets[0] = N_scs[2]
+                sc_offsets[1] = 0
+                sc_offsets[2] = 0
+                sf_offsets[0] = 0
+                sf_offsets[1] = N_sfs[2]
+                sf_offsets[2] = 0
+            # 2, 1, 0
+            else:
+                arrangement = sort_indexes(periods, N_scs, N_sfs)
+                i = arrangement[0]
+                j = arrangement[1]
+                k = arrangement[2]
+                sc_offsets = [0, 0, 0]
+                sf_offsets[i] = 0
+                sf_offsets[j] = N_sfs[i]
+                sf_offsets[k] = N_sfs[i] + N_sfs[j]
+        else: # sum(N_scs) <= 12
+            min_length =  max(N_sfs[2], N_sfs[1] + N_sfs[0])
+            if N_scs[0] <= N_scs[1]:
+                sc_offsets = [N_scs[2], N_scs[2], 0]
+                sf_offsets = [N_sfs[1], 0, 0]
+            else:
+                sc_offsets = [N_scs[2], N_scs[2], 0]
+                sf_offsets = [0, N_sfs[0], 0]
+    
+    min_periodicity = minpass(par.NPRACH_periodicity_list, min_length)
+
+    if min(periods) < min_periodicity:
+        return periods, sc_offsets, sf_offsets, False
+
+    return periods, sc_offsets, sf_offsets, True
 
 class CElevelSClog:
     '''
@@ -98,11 +291,20 @@ class CElevelSClog:
             if t < current_t:
                 self.log.remove(t)
 
-
 class NprachResource:
     '''
     Manages the parameters of a NPRACH resource for a CE_level, 
     and generates subframes according to these parameters.
+    The time scheme works like this:
+          ------------------------------------------------
+                  ^              ^          ^
+                t_start          t         t_next
+                                 
+                                    t_offset      ^
+                                  <----------> t_ahead    
+    t_start: when the next NPRACH starts (already scheduled)
+    t: time horizon
+    t_next: the NPRACH AFTER the next NPRACH
     '''
     def __init__(self, periodicity, N_sf, N_sc, sc_offset = 0):
         self.t_start = 0
@@ -120,13 +322,23 @@ class NprachResource:
         '''
         if not self.N_sc: # the resource simply doesn't exist
             return False, self.normal_sf
-
+        
         t -= self.t_offset
 
         if self.sf_to_go > 0:
             self.sf_to_go -= 1
             return False, self.NPRACH_sf
-        elif t == self.t_next or not t:
+        if t > self.t_next:
+            # t may surpass t_next if t_next was reduced
+            # we simply need to move t_next as many periods as needed
+            self.t_next = self.t_start + self.periodicity
+            while self.t_next < t:
+                self.t_next += self.periodicity
+        if t == self.t_next or not t: 
+            # when t reaches t_next then it is time
+            # to schedule a new NPRACH resource
+            # second condition is for starting the simulation
+            # t may surpass t_next if t_next was reduced
             self.NPRACH_sf = self.create_new_prach_sf()
             self.t_start = t
             self.sf_to_go = self.N_sf - 1
@@ -147,10 +359,20 @@ class NprachResource:
         self.sc_offset = sc_offset
     
     def update(self, ref_time, periodicity, N_sf, N_sc, sc_offset = 0, t_offset = 0):
+        '''
+        NPRACH resource is updated
+        '''
         self.conf_resource(periodicity, N_sf, N_sc, sc_offset)
+        # self.t_next = ref_time + periodicity
+        if DEBUG:
+            print(f'               UPDATE old t_next: {self.t_next % 10_000}')
         self.t_next = self.t_start + periodicity
-        if self.t_next < ref_time:
+        if DEBUG:
+            print(f'                      new t_next: {self.t_next % 10_000} <- {self.t_start % 10_000} + {periodicity} | ref_time {ref_time % 10_000}')
+        if self.t_next <= ref_time:
             self.t_next = ref_time + periodicity
+            if DEBUG:
+                print(f'                      corrected t_next: {self.t_next % 10_000}')
 
         self.t_offset = t_offset
 
@@ -159,8 +381,8 @@ class NprachResource:
 
     def get_ra_parameters(self):
         N_rep = N_sf_to_N_rep[self.N_sf]
-        N_sc = 4 * self.N_sc
-        return N_rep, N_sc, self.periodicity
+        N_preambles = 4 * self.N_sc
+        return N_rep, N_preambles, self.periodicity, self.N_sc, self.N_sf
 
 
 class SFGenerator:
@@ -187,26 +409,35 @@ class SFGenerator:
         sf = np.full((12,1), False)
         for CE_level, NPRACH in enumerate(self.NPRACH_list):
             event, _sf = NPRACH.sample(t)
+            if DEBUG:
+                if t > 552080 and t < 555000:
+                    print(f'              t_ahead {t % 10_000} CE{CE_level} | t_start: {NPRACH.t_start % 10_000} | t_offset {NPRACH.t_offset % 10_000} | t {(t - NPRACH.t_offset)%10_000} | t_next {NPRACH.t_next % 10_000} | period {NPRACH.periodicity}')
+            # if DEBUG:
+            #     if CE_level == 2 and t > 15000 and t < 16500:
+            #         print(f'             {t} NPRACH CE{CE_level} | t_next: {NPRACH.t_next} | t_start: {NPRACH.t_start} | t_offset {NPRACH.t_offset} | sf_to_go: {NPRACH.sf_to_go} ')
             if color:
                 sf = sf + RACH_color[CE_level] * _sf
             else:
                 sf = sf | _sf
             if event:
-                N_rep, N_sc, _ = NPRACH.get_ra_parameters()
+                N_rep, N_preambles, _, n_sc, n_sf = NPRACH.get_ra_parameters()
                 if self.carrier == 0:
-                    s = Event('NPRACH_start', CE_level = CE_level, carrier = self.carrier, N_sc = N_sc, N_rep = N_rep)
+                    # NPRACH resource scheduled for CE level {CE_level}
+                    s = Event('NPRACH_start', CE_level = CE_level, carrier = self.carrier, N_pream = N_preambles, N_rep = N_rep, N_sf = n_sf, N_sc = n_sc)
                     e = Event('NPRACH_end', CE_level = CE_level, carrier = self.carrier)
                     schedule_event(t, s)
                     schedule_event(t + NPRACH.N_sf, e)
+                    if DEBUG:
+                        print(f'            NPRACH CE{CE_level} scheduled [{t % 10_000}-{(t + NPRACH.N_sf)%10_000}] | t_start: {NPRACH.t_start % 10_000} | t_next: {NPRACH.t_next % 10_000}')
 
                 else:
-                    self.log_sc_fn(t, CE_level, N_sc)
+                    self.log_sc_fn(t, CE_level, N_preambles)
         return sf
     
     def get_conf(self):
         conf = {}
         for CE_level, NPRACH in enumerate(self.NPRACH_list):
-            N_rep, N_sc, period = NPRACH.get_ra_parameters()
+            N_rep, N_sc, period, _, _ = NPRACH.get_ra_parameters()
             conf[CE_level] = {'N_rep': N_rep, 'N_sc': N_sc, 'period': period}
         return conf
 
@@ -241,7 +472,7 @@ class Carrier:
             ]
             fn = self.sc_log.register_sc    
             self.sf_gen_list.append(SFGenerator(NPRACH_list, fn, carrier = carrier_id))
-            self.sf_ahead_list.append(np.empty((12,0), dtype= np.bool))
+            self.sf_ahead_list.append(np.empty((12,0), dtype= bool))
 
     def activate_animation(self, anim_step = 1, anim_span = 80):
         self.animation = True            
@@ -407,80 +638,47 @@ class Carrier:
     def get_sf_ahead(self, c):
         return self.sf_ahead_list[c]
 
-    def update_ra_parameters(self, CE_args_list):
+    def update_ra_parameters(self, CE_args_list, th_C1, th_C0):
         '''
         configures the parameters of all the NPRACH resources at each carrier
         receives a list with three lists inside
         each inner list contains [periodicity, N_sc (in 3.75 sc), N_reps]
         '''
         n_c = self.n_carriers
-        periods = [NPRACH_periodicity_list[c_a[0]] for c_a in CE_args_list]
+       
+        periods = [par.NPRACH_periodicity_list[c_a[0]] for c_a in CE_args_list]
         N_sfs = [NPRACH_N_sf_list[c_a[1]] for c_a in CE_args_list]
-        N_scs = [NPRACH_N_sc_list[n_c][c_a[2]] // 4 for c_a in CE_args_list]
-        N_scs_copy = [NPRACH_N_sc_list[n_c][c_a[2]] // 4 for c_a in CE_args_list]
+        N_scs = [par.NPRACH_N_sc_list[n_c-1][c_a[2]] // 4 for c_a in CE_args_list]
+
+        if th_C0 == 0: # no CE0
+            periods[0] = par.NPRACH_periodicity_list[0] # minimum periodicity to avoid getting stalled
+            N_sfs[0] = 0 # no resources for 
+            N_scs[0] = 0
+        if th_C1 == 0: # no CE1
+            periods[1] = par.NPRACH_periodicity_list[0]
+            N_sfs[1] = 0
+            N_scs[1] = 0
+        
+        # N_scs_copy = [par.NPRACH_N_sc_list[n_c][c_a[2]] // 4 for c_a in CE_args_list]
         N_scs_list = []
-        for _ in range(self.n_carriers): # additional subcarriers correspond to non-anchor carriers
+        for _ in range(n_c): # additional subcarriers correspond to non-anchor carriers
             N_scs_ = [min(N_sc, 12) for N_sc in N_scs]
             N_scs = [max(N_sc - N_sc_, 0) for N_sc, N_sc_ in zip(N_scs, N_scs_)]
             N_scs_list.append(N_scs_)
 
-        periods, sc_offsets, sf_offsets = self.compute_offsets(periods, N_sfs, N_scs_list[0])
+        periods, sc_offsets, sf_offsets, _ = compute_offsets(periods, N_sfs, N_scs_list[0])
+        # CARRIER updates parameters periods, sc_offsets, sf_offsets
 
-        for carrier in range(self.n_carriers):
+        for carrier in range(n_c):
             for ce in range(3):
-                p = periods[ce]
+                p = periods[ce]  
                 N_sf = N_sfs[ce]
                 N_sc = N_scs_list[carrier][ce]
                 sc_off = sc_offsets[ce]
                 sf_off = sf_offsets[ce]
+                if DEBUG:
+                    print(f'               UPDATE CE{ce} period: {p} | offset {sf_off} | ')  
                 self.sf_gen_list[carrier].update(ce, p, N_sf, N_sc, sc_offset = sc_off, t_offset = sf_off)
         
-        return periods, N_scs_copy, N_sfs
+        return periods, N_sfs
     
-
-    def compute_offsets(self, periods, N_sfs, N_scs):
-        '''computes the offsets in subframes and in subcarriers for arranging 
-        all the NPRACH resources without overlapping and also corrects the periodidicy
-        if required'''
-        sc_offsets = [0, 0, 0]
-        sf_offsets = [0, N_sfs[0], N_sfs[0]+N_sfs[1]]
-        min_length = sum(N_sfs)
-        if sum(N_scs) > 12:
-            for arrangement in resource_arrangements:
-                i = arrangement[0]
-                j = arrangement[1]
-                k = arrangement[2]
-                # the sum of subcarriers must be less than 12
-                if N_scs[i] + N_scs[j] > 12:
-                    continue
-                # the one with the largest N_sf must go first
-                if N_sfs[i] < N_sfs[j]:
-                    continue
-                # try the shorter configuration
-                if N_scs[i] + N_scs[k] < 12:
-                    if N_sfs[j] + N_sfs[k] < min_length:
-                        min_length = N_sfs[j] + N_sfs[k]
-                        sc_offsets[i] = 0
-                        sc_offsets[j] = N_scs[i]
-                        sc_offsets[k] = N_scs[i]
-                        sf_offsets[i] = 0
-                        sf_offsets[j] = 0
-                        sf_offsets[k] = N_sfs[j]
-                else: # try the other one
-                    if N_sfs[i] + N_sfs[k] < min_length:
-                        min_length = N_sfs[i] + N_sfs[k]
-                        sc_offsets[i] = 0
-                        sc_offsets[j] = N_scs[i]
-                        sc_offsets[k] = 0
-                        sf_offsets[i] = 0
-                        sf_offsets[j] = 0
-                        sf_offsets[k] = N_sfs[i]
-        else:
-            sc_offsets = [0, N_scs[0], N_scs[0]+N_scs[1]]
-            sf_offsets = [0, 0, 0]
-        
-        min_periodicity = minpass(NPRACH_periodicity_list, min_length)
-
-        periods = [max(min_periodicity, p) for p in periods]
-
-        return periods, sc_offsets, sf_offsets
