@@ -14,7 +14,7 @@ This work was supported by Grant PID2020-116329GB-C22 funded by MCIN / AEI / 10.
 
 ## Use case examples
 
-This environment has been used to develop new approaches for using RL in the control of NB-IoT functionalities.
+This environment has been used to develop new RL approaches for the control of NB-IoT functionalities.
 
 ### Random acess and coverage extension control
 The paper [Random Access Control in NB-IoT with Model-Based Reinforcement Learning](./manuscript/MBRL_for_NPRACH.pdf) (under review) presents a model-based RL agent that dynamically allocates resources to the random access channels (NPRACH) of each coverage extension (CE) level, while configuring the power level thresholds that determine the coverage area of each CE level. Compared to state-of-the-art mode-free RL agents (A2C, PPO), the model-based approach is capable of operating efficiently (i.e. with a small delay) even in the early stages of learning.
