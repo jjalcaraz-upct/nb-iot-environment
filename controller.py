@@ -10,9 +10,10 @@ Created on June 2022
 """
 
 import numpy as np
-from gym import spaces
-from system.parameters import *
-from data_agents import DummyAgent, agents_conf
+from gymnasium import spaces
+import system.parameters as par
+from system.utils import read_flag_from_file
+from control_agents import DummyAgent, agents_conf
 
 # DEBUG
 DEBUG = False
@@ -29,17 +30,19 @@ class Controller:
     def __init__(self, node, agents = default_agents, ext_agent = -1):
         self.node = node
         self.agents = agents
-        self.action = np.array([0]*N_actions, dtype=int)
-        self.obs = np.array([0]*state_dim, dtype=float)
+        self.action = np.array([0]*par.N_actions, dtype=int)
+        self.obs = np.array([0], dtype=float) # dummy
         self.soft_reset = False
         self.reward = 0.0
         self.info = {}
         self.set_ext_agent(ext_agent)
         self._set_agents_ids()
+        self._set_obs_dimensions()
+        self._initialize_action()
 
     def _set_agents_ids(self):
         '''
-        private method
+        determine which agents act in each state
         '''
         self.agents_ids = {}
         for agent in self.agents:
@@ -49,8 +52,21 @@ class Controller:
                     self.agents_ids[state].append(agent.id)
                 else:
                     self.agents_ids[state] = [agent.id]
-        print('>> CONTROLLER AGENT REGISTER')
-        print(self.agents_ids)
+    
+    def _set_obs_dimensions(self):
+        '''
+        stores the dimension of the observation for each agent
+        '''
+        self.obs_dimension = {}
+        for agent in self.agents:
+            self.obs_dimension[agent.id] = self.get_obs_dimension(agent.obs_items)
+    
+    def _initialize_action(self):
+        '''
+        initial action
+        '''
+        for a in self.agents: # a state may have more than one agent
+            self.update_action(a.id)
 
     def replace_agent(self, new_agent, pos):
         '''
@@ -64,18 +80,44 @@ class Controller:
         '''
         a_max = self.ext_agent.a_max
         if len(a_max) > 1:
-            space = spaces.MultiDiscrete(np.array(a_max))
+            space = spaces.MultiDiscrete(np.array(a_max) + 1)
         else:
-            space = spaces.Discrete(a_max[0])
+            space = spaces.Discrete(a_max[0] + 1)
         return space
+    
+    def get_obs_dimension(self, obs_items):
+        '''
+        gets the dimension of the observation space
+        '''
+        dim = 0
+        for item in obs_items:
+            dim += par.obs_dict[item][0]
+        return dim
 
     def get_obs_space(self):
         '''
         for open ai gym compatibility
         '''
-        s_mask = self.ext_agent.s_mask
-        space = spaces.Box(low=0.0, high=1.0, shape=(len(s_mask),), dtype=np.float32)
+        dimension = self.obs_dimension[self.ext_agent.id]
+        space = spaces.Box(low=0.0, high=1.0, shape=(dimension,), dtype=float)
         return space
+
+    def get_obs(self, obs_items):
+        '''
+        extracts items from self.info and constructs the observation
+        '''
+        obs = []
+        for item in obs_items:
+            n_ = par.obs_dict[item][0] # number of items
+            m_ = par.obs_dict[item][1] # normalization value
+            if n_ == 1:
+                v_ = self.info.get(item, 0)
+                obs.append(min(1.0, v_/m_))
+            else:
+                values = self.info.get(item, [0]*n_)
+                for v_ in values:
+                    obs.append(min(1.0, v_/m_))
+        return obs
 
     def set_ext_agent(self, ext_agent):
         '''
@@ -84,26 +126,20 @@ class Controller:
         if ext_agent > -1:
             self.ext_agent = self.agents[ext_agent]
             self.reference_states = self.ext_agent.states
-            if DEBUG:
-                for agent in self.agents:
-                    print(f'agent id {agent.id}, reference states {agent.states}') 
-                state = self.info.get('state','idle')
-                print('')
-                print(f'current state {state}')
-                print('')
         else:
             self.ext_agent = None
 
-
     def reset(self):
         '''
-        open ai interface method
+        gymnasium interface method
         '''
         if not self.soft_reset:
-            self.obs, self.info = self.node.reset()
+            self.info = self.node.reset()
         if self.ext_agent:
-            s_mask = self.ext_agent.s_mask
-            return self.obs[s_mask], self.info
+            obs_items = self.ext_agent.obs_items
+            obs = self.get_obs(obs_items)
+            obs = np.array(obs, dtype=float)
+            return obs, self.info
         return self.obs, self.info
 
     def update_action(self, a_id):
@@ -112,12 +148,9 @@ class Controller:
         '''
         agent = self.agents[a_id]
         a_mask = agent.a_mask
-        s_mask = agent.s_mask
-        obs = self.obs[s_mask]
+        obs_items = agent.obs_items
+        obs = self.get_obs(obs_items)
         a = agent.get_action(obs, self.reward, self.info, self.action)
-        if DEBUG:
-            print(f'update action a: {a}')
-            print(f'a_mask: {a_mask}')
         self.action[a_mask] = a
 
     def single_step(self):
@@ -129,7 +162,7 @@ class Controller:
         for agent_id in self.agents_ids[state]: # a state may have more than one agent
             self.update_action(agent_id)
         # now we can apply the action to the system
-        self.obs, self.reward, _, self.info = self.node.step(self.action)
+        self.reward, _, self.info = self.node.step(self.action)
 
     def run(self, steps):
         '''
@@ -139,9 +172,16 @@ class Controller:
             self.single_step()
             ### DEBUG ###
             if DEBUG and n%100 == 0:
-                print('step {}: t = {}, reward = {}, info = {}'.format(n,self.info['time'], self.reward,self.info))
+                print('step {}: t = {}, reward = {}, info = {}'.format(n,self.info['time'], self.reward, self.info))
 
-    
+    def run_agent_steps(self, agent_id, steps):
+        '''
+        this method runs the system for a number of system steps of one of the agents
+        '''
+        agent = self.agents[agent_id]
+        while agent.total_steps < steps:
+            self.single_step()
+
     def run_until(self, time):
         '''
         this method runs the system until a given time horizon using the registered agents
@@ -154,6 +194,42 @@ class Controller:
             if DEBUG and t%10_000 == 0:
                 print('t = {}, reward = {}, info = {}'.format(self.info['time'], self.reward,self.info))
 
+    def run_until_check(self, time, check_period, file_path):
+        '''
+        this method runs the system until a given time horizon using the registered agents
+        and ckecks if the simulation is allowed to continue based on an external flag file
+        '''
+        t = 0
+        steps = 0
+        while t < time:
+            self.single_step()
+            steps += 1
+            t = self.info['time']
+            if steps % check_period == 0:
+                if not read_flag_from_file(file_path):
+                    break
+
+    def run_double_check(self, time, check_period, file_path, second_check_p, check_cond = ('dep_ratio', 0.6)):
+        '''
+        this method runs the system until a given time horizon using the registered agents
+        and performs two ckecks:
+        1) if the simulation is allowed to continue based on an external flag file
+        2) if a given condition is hold
+        '''
+        t = 0
+        steps = 0
+        while t < time:
+            self.single_step()
+            steps += 1
+            t = self.info['time']
+            if steps % check_period == 0:
+                if not read_flag_from_file(file_path):
+                    return t
+            if steps % second_check_p == 0:
+                observation = self.info[check_cond[0]]
+                if observation < check_cond[1]:
+                    return t
+        return t
 
     def step(self, a):
         '''
@@ -170,18 +246,18 @@ class Controller:
             next_agent_id = self.agents[next_agent_id].next
 
         # apply the action to the system
-        self.obs, self.reward, _, self.info = self.node.step(self.action)
+        self.reward, _, self.info = self.node.step(self.action)
 
         # advance to the next step of the external agent
         self.to_next_step()
         
         # now we can let the external agent know what happened
-        # here we filter what is returned to the agent
-        # specific functions could be provided for this in future versions
-        s_mask = self.ext_agent.s_mask
-        obs = self.obs[s_mask]
+        # the obs_items vector determines what the external agent observes
+        obs_items = self.ext_agent.obs_items
+        obs = self.get_obs(obs_items)
+        obs = np.array(obs, dtype=float)
 
-        return obs, self.reward, False, self.info
+        return obs, self.reward, False, False, self.info
     
     def to_next_step(self):
         '''
@@ -199,7 +275,7 @@ class Controller:
                 self.update_action(agent_id)
             
             # now we can apply the action to the system
-            self.obs, self.reward, _, self.info = self.node.step(self.action)
+            self.reward, _, self.info = self.node.step(self.action)
 
             # update state
             state = self.info['state']
