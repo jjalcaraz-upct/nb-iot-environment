@@ -65,9 +65,7 @@ The scripts to replicate the results in [Transmission Control in NB-IoT with Mod
 There are four scripts for launching simulation experiments:
 
 - experiments_single_RL.py: runs the experiments with the RL agents of stable-baselines  
-- experiments_MARL.py: runs the experiments with two cooperative RL agents in a multi-agent (MA) architecture. 
-- experiments_NBLA_RL.py: runs the experiments using an NBLA agent for link-adaptation in a MA architecture. 
-- experiments_MAMBRL.py: runs the experiments using the proposed MBRL agent for link-adaptation in a MA architecture.
+- experiments_MAMBRL.py: runs the experiments using MAMBRL.
 
 ## Project structure
 
