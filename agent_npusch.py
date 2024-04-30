@@ -91,6 +91,7 @@ class OnlineClassifierAgent(DummyAgent):
 
     def get_action(self, obs, r, info, action):
         '''executes the configured method'''
+        self.total_steps += 1
         if 'ues' not in info:
             return [0, 0]
         return self.action_method(obs, r, info, action)
