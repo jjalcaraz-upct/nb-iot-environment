@@ -55,12 +55,12 @@ The notebook [NBIoT_documentation.ipynb](NBIoT_documentation.ipynb) contains a s
 
 ### Experiment scripts
 
-The scripts to replicate the results in [Random Access Control in NB-IoT with Model-Based Reinforcement Learning](./manuscript/MBRL_for_NPRACH.pdf) can be found in the ```./scripts_nprach``` folder. In order to run them, they must be moved to the root folder. 
+The scripts to replicate the results in [Random Access Control in NB-IoT with Model-Based Reinforcement Learning](./manuscript/MBRL_for_NPRACH.pdf) can be found in the ```./scripts/nprach``` folder. In order to run them, they must be moved to the root folder. 
 There are two scripts:
 - experiments_RL.py: runs the experiments with the RL agents of stable-baselines3
 - experiments_MBRL.py: runs the experiments with the MBRL agents
 
-The scripts to replicate the results in [Transmission Control in NB-IoT with Model-Based Reinforcement Learning](https://ieeexplore.ieee.org/abstract/document/10147823/) can be found in the ```./scripts_npusch``` folder. In order to run them, they must be moved to the root folder. 
+The scripts to replicate the results in [Transmission Control in NB-IoT with Model-Based Reinforcement Learning](https://ieeexplore.ieee.org/abstract/document/10147823/) can be found in the ```./scripts/npusch``` folder. In order to run them, they must be moved to the root folder. 
 
 There are four scripts for launching simulation experiments:
 
@@ -90,7 +90,7 @@ The the ./system folder contains the implementation of the environment which con
 - perf_monitor.py
 - system_creator.py
 
-The ```./gym-system``` folder contains the code for building a gym-compatible environment 
+The ```./gym-system``` folder contains the code for building a Gymnasium-compatible environment 
 
 The root folder contains:
 
