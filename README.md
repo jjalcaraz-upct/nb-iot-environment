@@ -60,11 +60,11 @@ There are two scripts:
 - experiments_RL.py: runs the experiments with the RL agents of stable-baselines3
 - experiments_MBRL.py: runs the experiments with the MBRL agents
 
-The scripts to replicate the results in [Transmission Control in NB-IoT with Model-Based Reinforcement Learning](https://ieeexplore.ieee.org/abstract/document/10147823/) can be found in the ```./scripts/npusch``` folder. In order to run them, they must be moved to the root folder. 
+The scripts to replicate the results in [Transmission Control in NB-IoT with Model-Based Reinforcement Learning](https://ieeexplore.ieee.org/abstract/document/10147823/) can be found in the ```./scripts/npusch``` folder. In order to run them, they must be moved to the root folder. These experiments require the installation of the [river](https://riverml.xyz/dev/) package (it was tested with version 0.16.0) 
 
-There are four scripts for launching simulation experiments:
+There are two scripts for launching simulation experiments:
 
-- experiments_single_RL.py: runs the experiments with the RL agents of stable-baselines  
+- experiments_single_RL.py: runs the experiments using (model-free) RL. 
 - experiments_MAMBRL.py: runs the experiments using MAMBRL.
 
 ## Project structure
