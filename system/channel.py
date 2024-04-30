@@ -121,17 +121,18 @@ class Channel:
     '''
     Class that holds all the required methods for channel simulation
     '''
-    def __init__(self,rng, m, capture_effect = False):
+    def __init__(self,rng, m, capture_effect = False, max_d = maxRange):
         self.rng = rng
         self.capture_effect = capture_effect
+        self.range = max_d
         self.m = m
         self.m.set_channel(self)
 
-    def set_xy_loss(self, ue, A = 128.1, B = 37.6, range = maxRange): # A = 120.9 for 900 MHz
+    def set_xy_loss(self, ue, A = 128.1, B = 37.6): # A = 120.9 for 900 MHz
         # TS 36.942 section 4.5 Propagation conditions and channel models (2000 MHz)
         x, y = generate_xy(self.rng)
         d, theta = location(x, y)
-        R = max(d*range, 0.1)
+        R = max(d*self.range, 0.1)
         G = Gmax + antenna_pattern(theta)
         L = A + B * np.log10(R)
         # gamma = 2.6

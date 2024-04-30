@@ -27,6 +27,7 @@ def create_system(rng, conf):
     reward_criteria = conf['reward_criteria']
     sort_criterium = conf.get('sort_criterium', 't_connection')
     levels = conf.get('levels', [0,1,2])
+    max_d = conf.get('max_d', None)
     sc_adjustment = conf.get('sc_adjustment', True)
     mcs_automatic = conf.get('mcs_automatic', True)
     ce_mcs_automatic = conf.get('ce_mcs_automatic', True)
@@ -43,7 +44,10 @@ def create_system(rng, conf):
     # and each element subscribes itself to the events that it handles
     m = MessageSwitch()
     carrier = Carrier(m, animation = ANIMATE_CARRIER)
-    channel = Channel(rng, m)
+    if max_d:
+        channel = Channel(rng, m, max_d = max_d)
+    else:
+        channel = Channel(rng, m)
     ue_generator = UEGenerator(rng, m, M = M, ratio = ratio, buffer_range = buffer_range, random = RANDOM)
     population = Population(rng, m, levels = levels)
     access = AccessProcedure(rng,m)
