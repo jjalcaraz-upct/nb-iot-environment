@@ -14,7 +14,6 @@ scenarios = {
     '2000_10_B': {
     'M': 2000,
     'ratio': 1,
-    'levels': [0,1,2],
     'buffer_range': [100, 500],
     'reward_criteria': 'average_delay',
     'statistics': True,
@@ -27,7 +26,6 @@ scenarios = {
     '2250_10_B': {
     'M': 2250,
     'ratio': 1,
-    'levels': [0,1,2],
     'buffer_range': [100, 500],
     'reward_criteria': 'average_delay',
     'statistics': True,
@@ -40,7 +38,6 @@ scenarios = {
     '2500_10_B': {
     'M': 2500,
     'ratio': 1,
-    'levels': [0,1,2],
     'buffer_range': [100, 500],
     'reward_criteria': 'average_delay',
     'statistics': True,
@@ -53,7 +50,6 @@ scenarios = {
     '1500_10_B': {
     'M': 1500,
     'ratio': 1,
-    'levels': [0,1,2],
     'buffer_range': [100, 500],
     'reward_criteria': 'average_delay',
     'statistics': True,
@@ -66,7 +62,6 @@ scenarios = {
     '1750_10_B': {
     'M': 1750,
     'ratio': 1,
-    'levels': [0,1,2],
     'buffer_range': [100, 500],
     'reward_criteria': 'average_delay',
     'statistics': True,
@@ -79,7 +74,6 @@ scenarios = {
     '1000_10_B': {
     'M': 1000,
     'ratio': 1,
-    'levels': [0,1,2],
     'buffer_range': [100, 500],
     'reward_criteria': 'average_delay',
     'statistics': True,
@@ -92,7 +86,6 @@ scenarios = {
     '1250_10_B': {
     'M': 1250,
     'ratio': 1,
-    'levels': [0,1,2],
     'buffer_range': [100, 500],
     'reward_criteria': 'average_delay',
     'statistics': True,
@@ -106,7 +99,6 @@ scenarios = {
     'M': 2000,
     'ratio': 1,
     'levels': [0,1,2],
-    'buffer_range': [100, 500],
     'reward_criteria': 'average_delay',
     'statistics': True,
     'animate_carrier': False,
@@ -119,7 +111,6 @@ scenarios = {
     '1000_10_BS': {
     'M': 1000,
     'ratio': 1,
-    'levels': [0,1,2],
     'buffer_range': [100, 500],
     'reward_criteria': 'average_delay',
     'statistics': True,
@@ -133,7 +124,6 @@ scenarios = {
     '3000_10_B': {
     'M': 3000,
     'ratio': 1,
-    'levels': [0,1,2],
     'buffer_range': [100, 500],
     'reward_criteria': 'average_delay',
     'statistics': True,
@@ -146,7 +136,6 @@ scenarios = {
     '3000_10_BS': {
     'M': 3000,
     'ratio': 1,
-    'levels': [0,1,2],
     'buffer_range': [100, 500],
     'reward_criteria': 'average_delay',
     'statistics': True,
@@ -160,7 +149,6 @@ scenarios = {
     '2000_08_B': {
     'M': 2000,
     'ratio': 0.8,
-    'levels': [0,1,2],
     'buffer_range': [100, 500],
     'reward_criteria': 'average_delay',
     'statistics': True,
@@ -173,7 +161,6 @@ scenarios = {
     '2000_08_BS': {
     'M': 2000,
     'ratio': 0.8,
-    'levels': [0,1,2],
     'buffer_range': [100, 500],
     'reward_criteria': 'average_delay',
     'statistics': True,
@@ -187,7 +174,6 @@ scenarios = {
     '2000_05_B': {
     'M': 2000,
     'ratio': 0.5,
-    'levels': [0,1,2],
     'buffer_range': [100, 500],
     'reward_criteria': 'average_delay',
     'statistics': True,
@@ -200,7 +186,6 @@ scenarios = {
     '2000_05_BS': {
     'M': 2000,
     'ratio': 0.5,
-    'levels': [0,1,2],
     'buffer_range': [100, 500],
     'reward_criteria': 'average_delay',
     'statistics': True,

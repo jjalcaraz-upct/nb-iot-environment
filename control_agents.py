@@ -29,13 +29,13 @@ nprach_actions = ['rar_window', 'mac_timer', 'transmax', 'panchor',
 agents_conf = [
     {'id': 0, # UE selection
     'action_items': ['id'], # action items controlled by this agent
-    'obs_items': [],
+    'obs_items': ['total_ues', 'connection_time', 'loss', 'sinr', 'buffer', 'carrier_state'],
     'next': 1, # next agent operating in the same nodeb state
     'states': ['Scheduling'] # nodeb state where this agent operates 
     },
     
-    {'id': 1, # Imcs, N_rep, N_ru selection
-    'action_items': ['Imcs', 'Nrep', 'N_ru'],
+    {'id': 1, # Imcs, N_rep selection
+    'action_items': ['Imcs', 'Nrep'],
     'obs_items': [],
     'next': 2,
     'states': ['Scheduling']
@@ -142,6 +142,8 @@ class RandomUserAgent(DummyAgent):
         self.rng = rng
     
     def get_action(self, obs, r, info, action):
+        if 'ues' not in info:
+            return [0]
         users = min(len(info['ues']), par.N_users)
         if users == 0:
             return [0]
