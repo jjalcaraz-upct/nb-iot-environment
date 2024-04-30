@@ -18,8 +18,6 @@ from collections import deque
 import numpy as np
 import time
 
-
-
 first_part = np.linspace(0.0035, 0.1, 20, endpoint=False)  # Exclude the endpoint to avoid repetition
 second_part = np.linspace(0.1, 0.2, 10)
 
@@ -48,6 +46,76 @@ th_C0 = par.threshold_list[th_C0_i]
 th_C1 = par.threshold_list[th_C1_i]
 N_sfs_list = par.compute_NPRACH_sf(th_C1, th_C0)
 
+class BasicWrapper(gym.Wrapper):
+    '''
+    basic wrapper for an agent selecting UEs 
+    The wrapper's objective is to avoid selecting unexisting ues
+    '''
+    def __init__(self, env, verbose = False, n_report = 100):
+        super().__init__(env)
+        self.env = env
+        self.n = 0
+        self.R = 0
+        self.verbose = verbose
+        self.N = n_report
+        self.min_reward = -100
+        self.info = {'time': 0, 'ues':[0]}
+    
+    def reset(self, seed = None, options = None):
+        self.obs, info = self.env.reset()
+        return self.obs, info
+        
+    def step(self, action):
+        n_users = len(self.info['ues'])
+        self.n += 1
+        if n_users > 1 and action >= n_users: # impossible action
+            reward = 10 * self.min_reward
+            terminated = False
+            truncated = False
+        else:
+            self.obs, reward, terminated, truncated, self.info = self.env.step(action)
+            if reward < self.min_reward:
+                self.min_reward = reward # this prevents local minima
+        if self.verbose and self.n % self.N == 0:
+            self.R += reward
+            av_R = self.R / self.n
+            time = self.info['time']
+            ues = self.info['ues']
+            print(f'step {self.n}, time: {time}, average reward: {av_R}, action: {action}, users: {ues}, reward: {reward}')
+
+        return self.obs, reward, terminated, truncated, self.info
+    
+class BasicSchedulerWrapper(BasicWrapper):
+    '''
+    basic wrapper for an agent selecting the UE, and its Imcs, Nrep 
+    '''
+    def __init__(self, env, verbose = False, n_report = 100):
+        super().__init__(env, verbose = verbose, n_report = n_report)
+        self.info = {'time': 0, 'ues':[0], 'unfit': []}
+        
+    def step(self, action):
+        n_users = len(self.info['ues'])
+        self.n += 1
+        if n_users > 1 and action[0] >= n_users: # impossible action
+            reward = 10 * self.min_reward # perhaps could be removed
+            terminated = False
+            truncated = False
+        else:
+            self.obs, reward, terminated, truncated, self.info = self.env.step(action)
+            if reward < self.min_reward:
+                self.min_reward = reward # this prevents local minima
+        
+        if len(self.info['unfit']) > 0: # penalty for selecting Imcs and Nrep that does not fit
+            reward += self.min_reward
+        
+        if self.verbose and self.n % self.N == 0:
+            self.R += reward
+            av_R = self.R / self.n
+            time = self.info['time']
+            ues = self.info['ues']
+            print(f'step {self.n}, time: {time}, average reward: {av_R}, action: {action}, users: {ues}, reward: {reward}')
+
+        return self.obs, reward, terminated, truncated,  self.info
 
 class NPRACH_basic_wrapper(gym.Wrapper):
     '''
