@@ -96,8 +96,10 @@ class DummyAgent:
         self.a_max = get_max_control_values(action_items)
         self.fixed_action = get_control_default_values(action_items)
 
-    def set_action(self, fixed_action):
-        self.fixed_action = fixed_action
+    def set_action(self, dict_action_values):
+        for i, action_name in enumerate(self.action_items):
+            if action_name in dict_action_values.keys():
+                self.fixed_action[i] = dict_action_values[action_name]
 
     def get_action(self, obs, r, info, action):
         # action contains the action so far
