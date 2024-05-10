@@ -24,10 +24,8 @@ second_part = np.linspace(0.1, 0.2, 10)
 s_action_values = np.concatenate((first_part, second_part))
 
 def to_discrete(dimensions):
-    args = []
-    for d in dimensions:
-        args.append(range(d))
-    return list(product(*args))
+    args = [range(d) for d in dimensions]  # List comprehension to generate ranges
+    return [list(item) for item in product(*args)]  # Convert each tuple to a list
 
 def convert_seconds(total_seconds):
     hours = total_seconds // 3600
@@ -117,78 +115,6 @@ class BasicSchedulerWrapper(BasicWrapper):
 
         return self.obs, reward, terminated, truncated,  self.info
 
-class NPRACH_basic_wrapper(gym.Wrapper):
-    '''
-    Wrapper for an agent selecting NPRACH parameters
-    '''
-    def __init__(self, env, metrics, discrete = False):
-        super().__init__(env)
-        self.env = env
-        self.samples = {metric: [] for metric in metrics}
-        self.n = 0
-        self.action = [2,2,2,2,2,2]
-        self.info = {'time': 0,
-                     'state': 'NPRACH_update', 
-                     'total_ues': 0,
-                     'preambles': [12, 12, 12],
-                     'NPRACH_detection': [0, 0, 0],
-                     'NPRACH_collision': [0, 0, 0],
-                     'msg3_detection': [0, 0, 0],
-                     'msg3_sent': [0, 0, 0],
-                     'msg3_received': [0, 0, 0],
-                     'RA_occupation': 0,
-                     'NPUSCH_occupation': 0,
-                     'incoming': [],
-                     'delays': [],
-                     'departures': 0,
-                     'service_times': [],
-                     'NPRACH conf': []
-                    }
-        self.discrete = discrete
-        if discrete:
-            self.actions = to_discrete(env.action_space.nvec)
-            self.action_space = Discrete(len(self.actions))
-    
-    def reset(self, seed = None, options = None):
-        self.obs, info = self.env.reset()
-        return self.obs, info
-        
-    def step(self, action):
-        self.n += 1 # step counter
-        if self.discrete:
-            action = list(self.actions[action])
-
-        # extract NPRACH configuration
-        nsc = [par.N_sc_list[i] for i in action[0:3]]
-        periods = [par.period_list[i] for i in action[3:]]
-
-        # check if valid configuration
-        _, _, _, valid = compute_offsets(periods, N_sfs_list, nsc)
-
-        if not valid:
-            # simply apply previous valid action
-            action = self.action
-            reward = -1
-            self.obs, _, terminated, truncated, self.info = self.env.step(action)
-        else:
-            # apply action
-            self.obs, reward, terminated, truncated, self.info = self.env.step(action)
-            reward = min(1, reward / 100)
-                    
-        # store samples
-        for metric, samples in self.samples.items():
-            sample = self.info.get(metric, None)
-            if isinstance(sample, list):
-                # Avoid division by zero for empty lists
-                sample = sum(sample) / len(sample) if sample else 0
-                samples.append(sample)
-            else:
-                # If the value is not a list, store it as is
-                samples.append(sample)
-
-        self.action = action
-
-        return self.obs, reward, terminated, truncated, self.info  
 
 class NPRACH_wrapper(gym.Wrapper):
     '''
@@ -426,67 +352,6 @@ class NPRACH_agent_wrapper_traces(NPRACH_agent_wrapper):
         return obs, reward, terminated, truncated, info
 
 
-class NPRACH_Sagent_wrapper(gym.Wrapper):
-    '''
-    Wrapper for an RL agent that configures only the margin (beta) value 
-    of the model-based configurator
-    '''
-    def __init__(self, env, agent, bounds = [1.4, 3.4], reduced_observation = True, discrete = True, action_values = s_action_values, obs_items = obs_items, norm = 100):
-        super().__init__(env)
-        if discrete:
-            n_actions = len(action_values)
-            self.action_space = Discrete(n_actions)
-            self.action_values = action_values
-        else:
-            self.action_space = Box(low = bounds[0], high = bounds[1])
-        self.discrete = discrete
-        if reduced_observation:
-            obs_size = len(obs_items)
-            self.obs_items = obs_items
-            self.observation_space = Box(0, 1, shape=(obs_size,))
-        self.reduced_observation = reduced_observation
-        self.agent = agent
-        self.samples = agent.samples
-        self.r = 0
-        self.norm = norm
-        self.conf = [0, 0, 0, 0, 0, 0]
-        self.n = 0
-
-    def reset(self, seed = None, options = None):
-        obs, self.info = self.env.reset()
-        if self.reduced_observation:
-            obs = [obs[i] for i in self.obs_items] # RA occupation & total_ues
-        self.obs = obs
-        return self.obs, self.info
-
-    def step(self, action):
-        self.n += 1 # step counter
-        
-        # get action
-        if self.discrete:
-            action = self.action_values[action]
-        else:
-            action = action[0]
-        
-        # apply action                 
-        self.agent.set_parameter(action)
-
-        # get the configuration
-        conf = self.agent.get_action(self.obs, self.r, self.info, self.conf)
-
-        # apply the action to the environment
-        obs, reward, terminated, truncated, self.info = self.env.step(conf)
-        self.conf = conf
-        self.r = reward / self.norm
-        
-        if self.reduced_observation:
-            obs = [obs[i] for i in self.obs_items] # RA occupation / total_ues
-
-        self.obs = obs
-
-        return self.obs, self.r, terminated, truncated, self.info
-
-
 class DiscreteActions(gym.ActionWrapper):
     def __init__(self, env):
         super().__init__(env)
@@ -497,51 +362,49 @@ class DiscreteActions(gym.ActionWrapper):
     def action(self, act):
         return list(self.actions[act])
 
+
 class RAR_wrapper(gym.Wrapper):
-    # def __init__(self, env, discrete = False):
-    def __init__(self, env, discrete = False):
+    def __init__(self, env, reward_criteria = 'msg3'):
         super().__init__(env)
         self.env = env
-        self.discrete = discrete
+        self.reward_criteria = reward_criteria
         self.reward_history = []
         self.detection_history = []
+        self.departure_history = []
         self.total_msg_t_1 = 0
         self.total_departures_1 = 0
-        self.total_departures_0 = 0
         self.ce_level_selected = []
         self.I_mcs_history = [[], [], []]
         self.N_rep_history = [[], [], []]
+        self.n_steps = 0
     
     def reset(self, seed = None, options = None):
         obs, info = self.env.reset()
         return obs, info
     
     def step(self, action):
-        # if self.discrete:
-        #     action = list(self.actions[action])
-        obs, _, terminated, truncated, info = self.env.step(action)    
+        obs, _, terminated, truncated, info = self.env.step(action)
         
         t = info['time']
-        RAR_detected = info['RAR_detected']
-        RAR_failed = info['RAR_failed']
-        self.total_departures_1 += info['total_departures']
-
-        total_msg_t = sum(RAR_detected) # msg3 detectados en el instante t
-        total_failed = sum(RAR_failed)
-
-        # connection-based reward
-        detections = max(0, total_msg_t - self.total_msg_t_1) #Detectados en el instante t - detectados en el instante (t-1)
-        reward = max(-1, min(1, detections/4) - total_failed/4)
-
-        # # departure-based reward
-        # departures = max(0, self.total_departures_1 - self.total_departures_0)
-        # reward = max(-1, min(1, departures/4) - total_failed/4)
-        # self.total_departures_0 = self.total_departures_1
-
+        RAR_detected = info['RAR_detected'] # Counters of msg3s detected per CE level
+        total_msg_t = sum(RAR_detected) # Counter of all msg3 detected up to t
+        detections = max(0, total_msg_t - self.total_msg_t_1) # Detections between t and (t-1)
         self.total_msg_t_1 = total_msg_t
-        
+
+        RAR_failed = info['RAR_failed']
+        total_failed = sum(RAR_failed) # msg3 not delivered on time
+
+        total_departures = info['total_departures']
+        departures = max(0, total_departures - self.total_departures_1)
+        self.total_departures_1 = total_departures 
+
+        # reward estimation
         if not info['valid_CE_control']:
-            reward = - 0.2
+            reward = - 1
+        elif self.reward_criteria == 'departures': # departure-based reward
+            reward = max(-1, min(1, departures/4) - total_failed/4)           
+        else: # connection-based reward
+            reward = max(-1, min(1, detections/4) - total_failed/4)
 
         # sampling actions
         action = info['action']
@@ -552,6 +415,7 @@ class RAR_wrapper(gym.Wrapper):
         self.I_mcs_history[CE_level].append(I_mcs)
         self.N_rep_history[CE_level].append(N_rep)
         self.reward_history.append(reward)
+        self.departure_history.append((t, departures))
         self.detection_history.append((t, detections))
 
         return obs, reward, terminated, truncated, info
