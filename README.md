@@ -4,13 +4,13 @@
 
 Source code of a [Narrowband Internet of Things](https://en.wikipedia.org/wiki/Narrowband_IoT) (NB-IoT) environment for experimenting with reinforcement learning (RL) agents. The environment implements the NB-IoT physical layer and the medium access control (MAC) in a radio cell which can be controlled by one or more agents. There are 23 controllable parameters/actions including the parameters of the narrowband random access channel (NPRACH) for each coverage extension (CE) level, and the link-adaptation parameters for uplink transmissions. Each control agent is assigned the parameters/actions to be controlled and the environmental variables to be observed. The environment also implements the Farama Foundation's [Gymnasium](https://gymnasium.farama.org) interface, and is compatible with [Stable-Baselines3](https://stable-baselines3.readthedocs.io/en/master/) RL agents.
 
-<img src="img/carrier_diagram.png" align="center" width="70%"/>
+<img src="figures/carrier_diagram.png" align="center" width="70%"/>
 
 ## Acknowledgements
 
 This work was supported by Grant PID2020-116329GB-C22 funded by MICIU / AEI / 10.13039/501100011033  
 
-<img src="img/MICINN_Gob_Web_AEI_2.jpg" align="center" width="40%"/>
+<img src="figures/MICINN_Gob_Web_AEI_2.jpg" align="center" width="40%"/>
 
 ## Use case examples
 
