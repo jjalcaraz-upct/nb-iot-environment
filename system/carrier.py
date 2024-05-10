@@ -18,22 +18,6 @@ from . import parameters as par
 from .utils import generate_movie
 from .event_manager import schedule_event, Event
 
-DEBUG = False
-# from .parameters import NPRACH_periodicity_list, NPRACH_N_sc_list, N_rep_preamble_list, Horizon, N_carriers
-
-# colormap = matplotlib.cm.gist_rainbow  # Can be any colormap that you want after the cm
-# colormap.set_bad(color = 'white')
-
-# # resource configurations
-# resource_arrangements = [
-#     [2,1,0],
-#     [1,0,2],
-#     [0,2,1],
-#     [2,0,1],
-#     [1,2,0],
-#     [0,1,2]
-# ]
-
 # convert from preamble repetitions to subframes
 NPRACH_N_sf_list = [int(np.ceil(N_rep * 5.6)) for N_rep in par.N_rep_preamble_list]
 
@@ -363,16 +347,10 @@ class NprachResource:
         NPRACH resource is updated
         '''
         self.conf_resource(periodicity, N_sf, N_sc, sc_offset)
-        # self.t_next = ref_time + periodicity
-        if DEBUG:
-            print(f'               UPDATE old t_next: {self.t_next % 10_000}')
         self.t_next = self.t_start + periodicity
-        if DEBUG:
-            print(f'                      new t_next: {self.t_next % 10_000} <- {self.t_start % 10_000} + {periodicity} | ref_time {ref_time % 10_000}')
+
         if self.t_next <= ref_time:
             self.t_next = ref_time + periodicity
-            if DEBUG:
-                print(f'                      corrected t_next: {self.t_next % 10_000}')
 
         self.t_offset = t_offset
 
@@ -409,12 +387,6 @@ class SFGenerator:
         sf = np.full((12,1), False)
         for CE_level, NPRACH in enumerate(self.NPRACH_list):
             event, _sf = NPRACH.sample(t)
-            if DEBUG:
-                if t > 552080 and t < 555000:
-                    print(f'              t_ahead {t % 10_000} CE{CE_level} | t_start: {NPRACH.t_start % 10_000} | t_offset {NPRACH.t_offset % 10_000} | t {(t - NPRACH.t_offset)%10_000} | t_next {NPRACH.t_next % 10_000} | period {NPRACH.periodicity}')
-            # if DEBUG:
-            #     if CE_level == 2 and t > 15000 and t < 16500:
-            #         print(f'             {t} NPRACH CE{CE_level} | t_next: {NPRACH.t_next} | t_start: {NPRACH.t_start} | t_offset {NPRACH.t_offset} | sf_to_go: {NPRACH.sf_to_go} ')
             if color:
                 sf = sf + RACH_color[CE_level] * _sf
             else:
@@ -427,9 +399,6 @@ class SFGenerator:
                     e = Event('NPRACH_end', CE_level = CE_level, carrier = self.carrier)
                     schedule_event(t, s)
                     schedule_event(t + NPRACH.N_sf, e)
-                    if DEBUG:
-                        print(f'            NPRACH CE{CE_level} scheduled [{t % 10_000}-{(t + NPRACH.N_sf)%10_000}] | t_start: {NPRACH.t_start % 10_000} | t_next: {NPRACH.t_next % 10_000}')
-
                 else:
                     self.log_sc_fn(t, CE_level, N_preambles)
         return sf
@@ -676,8 +645,6 @@ class Carrier:
                 N_sc = N_scs_list[carrier][ce]
                 sc_off = sc_offsets[ce]
                 sf_off = sf_offsets[ce]
-                if DEBUG:
-                    print(f'               UPDATE CE{ce} period: {p} | offset {sf_off} | ')  
                 self.sf_gen_list[carrier].update(ce, p, N_sf, N_sc, sc_offset = sc_off, t_offset = sf_off)
         
         return periods, N_sfs

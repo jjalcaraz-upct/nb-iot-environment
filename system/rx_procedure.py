@@ -11,8 +11,6 @@ Created on May 6, 2022
 
 from .event_manager import subscribe
 
-DEBUG = False
-
 class RxProcedure:
     '''
     Determines if an msg3 or NPUSCH from an UE is received or not.
@@ -38,8 +36,6 @@ class RxProcedure:
         CE = ue.CE_level
 
         contenders = len(contention_list)
-        if DEBUG:
-            print(f'{event.t}: msg3 for ue {ue.id} CE {CE}, loss: {ue.loss} mcs ({ue.I_tbs, ue.N_rep, ue.N_ru}) received {connected}, contenders: {contenders}')
         
         if connected:
             self.m.node.msg3_outcome(ue, event.t, True) # notify node_b

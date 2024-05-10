@@ -86,16 +86,16 @@ def find_y_value(x1, y1, x2, y2, x):
     return y
 
 def lower_left(x):
-    return find_y_value(0, 0.5, 0.25, 0, x)
+    return find_y_value(0, np.sqrt(3)/4, 0.25, 0, x)
 
 def lower_right(x):
-    return find_y_value(0.75, 0, 1, 0.5, x)
+    return find_y_value(0.75, 0, 1, np.sqrt(3)/4, x)
 
 def upper_left(x):
-    return find_y_value(0, 0.5, 0.25, 1, x)
+    return find_y_value(0, np.sqrt(3)/4, 0.25, np.sqrt(3)/2, x)
 
 def upper_right(x):
-    return find_y_value(0.75, 1, 1, .5, x)
+    return find_y_value(0.75, np.sqrt(3)/2, 1, np.sqrt(3)/4, x)
 
 def location(x, y):
     x_t = x - radius / 2
@@ -110,7 +110,7 @@ def generate_xy(rng):
     x, y = 0.1, 0.1
     while not in_cell:
         [x, y] = rng.random(2) 
-        in_cell = (y > lower_left(x)) and (y > lower_right(x)) and (y < upper_left(x)) and (y < upper_right(x))
+        in_cell = (y > lower_left(x)) and (y > lower_right(x)) and (y < upper_left(x)) and (y < upper_right(x)) and (y < np.sqrt(3)/2)
     return x, y
 
 def antenna_pattern(theta):
@@ -121,10 +121,13 @@ class Channel:
     '''
     Class that holds all the required methods for channel simulation
     '''
-    def __init__(self,rng, m, capture_effect = False, max_d = maxRange):
+    def __init__(self,rng, m, capture_effect = False, max_d = None):
         self.rng = rng
         self.capture_effect = capture_effect
-        self.range = max_d
+        if not max_d:
+            self.range = maxRange
+        else:
+            self.range = max_d
         self.m = m
         self.m.set_channel(self)
 

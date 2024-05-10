@@ -21,9 +21,6 @@ from . import parameters as par
 from .user import STATE
 from .utils import find_next_integer_index, find_next_integer
 
-DEBUG = False
-DEBUG2 = False
-
 # DEBUG USE ONLY
 tx_ues = []
 
@@ -104,6 +101,7 @@ class NodeB:
         self.valid_CE_control = True
         self.action = [0,0,0]
         self.final_action = [0,0,0] # check
+        self.total_departures = 0
 
         # Node B parameters
         self.state = 'NPRACH_update'
@@ -187,6 +185,7 @@ class NodeB:
 
         # return initial state and info
         info = self.get_node_info()
+
         return info
 
     def advance_fel(self):
@@ -296,7 +295,6 @@ class NodeB:
         - detections per NPRACH during last period
         '''
         total_ues = len(self.connected_UEs)
-        total_departures = len(self.departures)
         carrier_state = self.m.carrier_set.get_carrier_state(0)
         info = {'time': self.time, 'state': self.state, 'total_ues': total_ues, 'carrier_state': carrier_state}
         
@@ -349,7 +347,7 @@ class NodeB:
             info['valid_CE_control'] = self.valid_CE_control
             info['NPDCCH_sf_left'] = self.NPDCCH_sf_left
             info['carrier_state'] = self.m.carrier_set.get_carrier_state(0)
-            info['total_departures'] = total_departures
+            info['total_departures'] = self.total_departures
             info['sc_C0'] = self.NPRACH_conf['sc_C0']
             info['sc_C1'] = self.NPRACH_conf['sc_C1']
             info['sc_C2'] = self.NPRACH_conf['sc_C2']
@@ -364,9 +362,10 @@ class NodeB:
             self.RAR_failed = [0, 0, 0]
             
         else: # NPRACH update
+            num_departures = len(self.departures)
             detection_h, colision_h = self.m.access_procedure.get_histories()
             NPRACH_occupation, RA_occupation, NPUSCH_occupation = self.m.perf_monitor.estimate_carrier_resources(self.time, self.n_carriers)
-            av_delay = sum(self.departures)/total_departures if total_departures else 0
+            av_delay = sum(self.departures)/num_departures if num_departures else 0
             p_0 = (self.NPRACH_conf['sc_C0'] + 1) * 12
             p_1 = (self.NPRACH_conf['sc_C1'] + 1) * 12
             p_2 = (self.NPRACH_conf['sc_C2'] + 1) * 12
@@ -402,7 +401,7 @@ class NodeB:
             info['NPUSCH_occupation'] = NPUSCH_occupation # *
             info['NPRACH_occupation'] = NPRACH_occupation # *
             info['incoming'] = self.incoming
-            info['departures'] = total_departures
+            info['departures'] = num_departures
             info['delays'] = self.departures
             info['av_delay'] = av_delay # *
             info['service_times'] = self.service_times
@@ -467,12 +466,6 @@ class NodeB:
 
         RAR_ues = count_UEs(self.RAR_UEs)
 
-        if DEBUG:
-            print('')
-            print('RAR STATE:')
-            print(f' RAR_ues: {RAR_ues}')
-            print(f' NPDCCH_sf_left: {self.NPDCCH_sf_left}')
-
         self.valid_CE_control = True
         valid_control = True        
 
@@ -490,8 +483,6 @@ class NodeB:
                 enough_signalling_space = self.NPDCCH_sf_left >= NPDCCH_sf
                 valid_control = msgs_to_send and enough_signalling_space
                 if valid_control:
-                    if DEBUG2:
-                        print(f'NODEB not valid control: space {enough_signalling_space}, messages {msgs_to_send}')
                     self.valid_CE_control = False # the selected CE was not valid
                     break
 
@@ -511,13 +502,6 @@ class NodeB:
         
         self.final_action = [CE_level, I_tbs, N_rep]
 
-        if DEBUG:
-            print('')
-            print('ACTION:')
-            print(f' CE_level: {CE_level}')
-            print(f' I_tbs: {I_tbs}')
-            print(f' N_rep: {N_rep}')
-
         # check if the allocated resources fit into the selected carrier
         reference_time = self.time + NPDCCH_sf
         t_ul_end, N_sc, n_sf = self.allocate_resources(carrier_id, reference_time, delay, N_sc, N_ru, N_rep, CE_level = CE_level)
@@ -530,8 +514,6 @@ class NodeB:
             self.RAR_UEs[CE_level] = subtract_one(self.RAR_UEs[CE_level])
             self.m.perf_monitor.register_msg3_resources(N_sc, n_sf)
         else:
-            if DEBUG2:
-                print(f'NODEB not valid control: did not fit in the UL carrier')
             self.valid_CE_control = False
 
         # re-schedule NPDCCH
@@ -589,14 +571,11 @@ class NodeB:
         # report users
         _ = self.m.population.RAR_window_end(t, CE_level, backoff, rar_w_id)
         
-        # update RAR variables
-        if DEBUG:
-            print(f'RAR window end for CE level {CE_level}')
-            for w_id, ues in zip(self.RAR_w_ids[CE_level], self.RAR_UEs[CE_level]):
-                print(f'w_id {w_id}: {ues} ')
-            print('')
-        self.RAR_failed[CE_level] = self.RAR_UEs[CE_level].pop(0)
-        self.RAR_w_ids[CE_level].pop(0)
+        if self.RAR_UEs[CE_level]: # just in case
+            self.RAR_failed[CE_level] = self.RAR_UEs[CE_level].pop(0)
+
+        if self.RAR_w_ids[CE_level]:
+            self.RAR_w_ids[CE_level].pop(0)
 
         # update state
         self.update_state()
@@ -727,11 +706,6 @@ class NodeB:
         th_C1 = par.threshold_list[NPRACH_conf['th_C1']]
         th_C0 = par.threshold_list[NPRACH_conf['th_C0']]
 
-        if DEBUG:
-            print('NPRACH update')
-            print(f'action = {action}')
-            print(f' th_C0 = {th_C0}, th_C1 = {th_C1}')
-
         if th_C1 >= th_C0:
             th_C0 = 0 # use only two levels: CE1 and CE2
 
@@ -759,10 +733,6 @@ class NodeB:
             msg3_default_conf[0] = par.msg_3_conf[th_C0]
         else:
             msg3_default_conf[0] = (2,1,1)
-
-        if DEBUG:
-            print(f' th_C0 = {th_C0}, th_C1 = {th_C1}')
-            print(f' msg3_default_conf = {msg3_default_conf}')
               
         # obtain RAR_window_size
         RAR_window_size = par.RAR_WindowSize_list[NPRACH_conf['rar_window']] * par.NPDCCH_period
@@ -847,6 +817,7 @@ class NodeB:
                 delay, service_time, _ = self.m.perf_monitor.unregister_ue(ue) # for reward and performance
                 self.m.population.departure(ue) # returns to the source
                 self.departures.append(delay) # for NPRACH statistics
+                self.total_departures += 1 # total departures counter
                 self.service_times.append(service_time)
             else:
                 self.connected_UEs[ue.id] = ue # back to the queue

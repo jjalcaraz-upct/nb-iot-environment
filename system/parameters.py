@@ -243,8 +243,8 @@ control_default_values = {
     'period_C2': 3, # 3,
     'rep_C2': 2,
     'sc_C2': 1,
-    'th_C1': 4,
-    'th_C0': 8 # max_th # 0 --> No CE0
+    'th_C1': 5,
+    'th_C0': 9 # max_th # 0 --> No CE0
 }
 
 # NODE B: NPDCCH parameters

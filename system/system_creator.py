@@ -44,10 +44,7 @@ def create_system(rng, conf):
     # and each element subscribes itself to the events that it handles
     m = MessageSwitch()
     carrier = Carrier(m, animation = ANIMATE_CARRIER)
-    if max_d:
-        channel = Channel(rng, m, max_d = max_d)
-    else:
-        channel = Channel(rng, m)
+    channel = Channel(rng, m, max_d = max_d)
     ue_generator = UEGenerator(rng, m, M = M, ratio = ratio, buffer_range = buffer_range, random = RANDOM)
     population = Population(rng, m, levels = levels)
     access = AccessProcedure(rng,m)
