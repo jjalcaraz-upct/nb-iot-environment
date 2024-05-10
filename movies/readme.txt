@@ -1,0 +1,1 @@
+This is an auxiliary directory to store the videos of the uplink carrier resources over time
