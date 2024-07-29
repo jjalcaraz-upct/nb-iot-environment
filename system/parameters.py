@@ -34,7 +34,6 @@ max_p = 5 # MAX NPRACH PERIOD FOR RL AGENTS
 
 # CE level configuration values
 SRP = 35.0 # reference signal receive power dBm
-# threshold_list = [-115, -114, -113, -112, -111, -110, -109, -108, -106, -104, -102, -101, -100, -98, -96, 0]
 threshold_list = [-115, -114, -113, -112, -111, -110, -109, -108, -106, -104, -102, -100, -98, -96, 0]
 
 # the last value is used to eliminate levels, e.g.
@@ -58,18 +57,6 @@ for i, th_1 in enumerate(th_values):
         th_indexes[(th_1,th_0)] = [i, j]
 
 NPDCCH_sf = 8 # 4 number of consecutive NPDCCH subframes 
-
-# thr_to_n_rep = { 
-#     -116: 3, # 8
-#     -115: 3, # 8
-#     -114: 2, # 4
-#     -113: 2, # 4
-#     -112: 2, # 4
-#     -111: 1, # 2
-#     -110: 1, # 2
-#     -109: 1, # 2
-#     -108: 1, # 2
-# }
 
 thr_to_n_rep = { 
     -116: 3, # 8
@@ -257,8 +244,6 @@ control_default_values = {
     'sc_C2': 1,
     'th_C1': 8, # -106
     'th_C0': 11 # -101
-    # 'th_C1': 2, # -113
-    # 'th_C0': 7 # -108 max_th # 0 --> No CE0
 }
 
 # NODE B: NPDCCH parameters
