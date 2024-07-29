@@ -2,22 +2,22 @@
 
 ## Description
 
-Source code of a [Narrowband Internet of Things](https://en.wikipedia.org/wiki/Narrowband_IoT) (NB-IoT) environment for experimenting with reinforcement learning (RL) agents. The environment implements the NB-IoT physical layer and the medium access control (MAC) in a radio cell which can be controlled by one or more agents. There are 23 controllable parameters/actions including the parameters of the narrowband random access channel (NPRACH) for each coverage extension (CE) level, and the link-adaptation parameters for uplink transmissions. Each control agent is assigned the parameters/actions to be controlled and the environmental variables to be observed. The environment also implements the Farama Foundation's [Gymnasium](https://gymnasium.farama.org) interface, and is compatible with [Stable-Baselines3](https://stable-baselines3.readthedocs.io/en/master/) RL agents.
+Source code of a [Narrowband Internet of things](https://en.wikipedia.org/wiki/Narrowband_IoT) (NB-IoT) environment for experimenting with reinforcement learning (RL) agents. The environment implements the NB-IoT physical layer and the medium access control (MAC) in a radio cell, whose decisions can be controlled by one or more agents. To do this, it must be determined which specific parameters or actions each agent controls. The environment also implements the Farama Foundation's [Gymnasium](https://gymnasium.farama.org) interface, and can interact with [Stable-Baselines3](https://stable-baselines3.readthedocs.io/en/master/) RL agents.
 
-<img src="figures/carrier_diagram.png" align="center" width="70%"/>
+<img src="img/carrier_diagram.png" align="center" width="70%"/>
 
 ## Acknowledgements
 
-This work was supported by Grant PID2020-116329GB-C22 funded by MICIU / AEI / 10.13039/501100011033  
+This work was supported by Grant PID2020-116329GB-C22 funded by MCIN / AEI / 10.13039/501100011033  
 
-<img src="figures/MICINN_Gob_Web_AEI_2.jpg" align="center" width="40%"/>
+<img src="img/MICINN_Gob_Web_AEI_2.jpg" align="center" width="40%"/>
 
 ## Use case examples
 
-This environment has been used to develop new RL approaches for the control of NB-IoT functionalities.
+This environment has been used to develop new approaches for using RL in the control of NB-IoT functionalities.
 
 ### Random acess and coverage extension control
-The paper [Random Access Control in NB-IoT with Model-Based Reinforcement Learning](./manuscript/MBRL_for_NPRACH.pdf) (under review) presents a model-based RL agent that dynamically allocates resources to the random access channels (NPRACH) of each coverage extension (CE) level, while configuring the power level thresholds that determine the coverage area of each CE level. By controlling these parameters, the agent can find the most efficient way to distribute the traffic load among CE levels and to allocate time-frequency resources to each level's NPRACH. Compared to state-of-the-art model-free RL agents (A2C, PPO), the model-based approach is capable of operating efficiently (i.e. with a small delay) even in the early stages of learning.
+The paper [Random Access Control in NB-IoT with Model-Based Reinforcement Learning](./manuscript/MBRL_for_NPRACH.pdf) (under review) presents a model-based RL agent that dynamically allocates resources to the random access channels (NPRACH) of each coverage extension (CE) level, while configuring the power level thresholds that determine the coverage area of each CE level. Compared to state-of-the-art mode-free RL agents (A2C, PPO), the model-based approach is capable of operating efficiently (i.e. with a small delay) even in the early stages of learning.
 
 ### Uplink transmission control
 The journal paper [Transmission Control in NB-IoT with Model-Based Reinforcement Learning](https://ieeexplore.ieee.org/abstract/document/10147823/) presents a new multi-agent model-based RL (MAMBRL) proposal to schedule and determine the link-adaptation parameters of uplink transmissions. MAMBRL can learn on the system in operation without any previous knowledge (online learning), and without noticeably degrading the performance of the system during the learning process. It is compared to model-free RL agents (such as DQN, PPO, etc) whcih are much less sample-efficient and thus present higher transmission delay during initial stages of the learning episodes.
@@ -55,17 +55,19 @@ The notebook [NBIoT_documentation.ipynb](NBIoT_documentation.ipynb) contains a s
 
 ### Experiment scripts
 
-The scripts to replicate the results in [Random Access Control in NB-IoT with Model-Based Reinforcement Learning](./manuscript/MBRL_for_NPRACH.pdf) can be found in the ```./scripts/nprach``` folder. In order to run them, they must be moved to the root folder. 
+The scripts to replicate the results in [Random Access Control in NB-IoT with Model-Based Reinforcement Learning](./manuscript/MBRL_for_NPRACH.pdf) can be found in the ```./scripts_nprach``` folder. In order to run them, they must be moved to the root folder. 
 There are two scripts:
 - experiments_RL.py: runs the experiments with the RL agents of stable-baselines3
 - experiments_MBRL.py: runs the experiments with the MBRL agents
 
-The scripts to replicate the results in [Transmission Control in NB-IoT with Model-Based Reinforcement Learning](https://ieeexplore.ieee.org/abstract/document/10147823/) can be found in the ```./scripts/npusch``` folder. In order to run them, they must be moved to the root folder. These experiments require the installation of the [river](https://riverml.xyz/dev/) package (it was tested with version 0.16.0) 
+The scripts to replicate the results in [Transmission Control in NB-IoT with Model-Based Reinforcement Learning](https://ieeexplore.ieee.org/abstract/document/10147823/) can be found in the ```./scripts_npusch``` folder. In order to run them, they must be moved to the root folder. 
 
-There are two scripts for launching simulation experiments:
+There are four scripts for launching simulation experiments:
 
-- experiments_single_RL.py: runs the experiments using (model-free) RL. 
-- experiments_MAMBRL.py: runs the experiments using MAMBRL.
+- experiments_single_RL.py: runs the experiments with the RL agents of stable-baselines  
+- experiments_MARL.py: runs the experiments with two cooperative RL agents in a multi-agent (MA) architecture. 
+- experiments_NBLA_RL.py: runs the experiments using an NBLA agent for link-adaptation in a MA architecture. 
+- experiments_MAMBRL.py: runs the experiments using the proposed MBRL agent for link-adaptation in a MA architecture.
 
 ## Project structure
 
@@ -88,13 +90,15 @@ The the ./system folder contains the implementation of the environment which con
 - perf_monitor.py
 - system_creator.py
 
-The ```./gym-system``` folder contains the code for building a Gymnasium-compatible environment 
+The ```./gym-system``` folder contains the code for building a gym-compatible environment 
 
 The root folder contains:
 
 - controller.py: orchestrates the multi-agent architecture
 - control_agents.py: defines the basic agents
 - agent_nprach.py: defines the agents for NPRACH control
+- agent_dqn.py: implements a generic DQN agent based on [CleanRL](https://github.com/vwxyzjn/cleanrl)
+- agent_dqn_nprach.py: implements a multi-agent DQN for NPRACH control
 - agent_npusch: defines the agents for NPUSCH control
 - wrappers.py: diverse wrappers for interacting with stable-baseline3 agents
 - scenarios.py: defines simulation scenarios
