@@ -38,6 +38,10 @@ def create_system(rng, conf):
     TRACES = conf.get('traces', False)
     RESOURCE_MONITOR = conf.get('resource_monitor', False)
     RANDOM = conf.get('random', False)
+    clustered = conf.get('clustered', False)
+    cluster_ues = conf.get('cluster_ues', [10, 30])
+    cluster_prob = conf.get('cluster_prob', 0.5)
+    cluster_range = conf.get('cluster_range', 0.5)
 
     # create the system 
     # each element must be created individually
@@ -46,7 +50,7 @@ def create_system(rng, conf):
     carrier = Carrier(m, animation = ANIMATE_CARRIER)
     channel = Channel(rng, m, max_d = max_d)
     ue_generator = UEGenerator(rng, m, M = M, ratio = ratio, buffer_range = buffer_range, random = RANDOM)
-    population = Population(rng, m, levels = levels)
+    population = Population(rng, m, levels = levels, clustered = clustered, cluster_ues = cluster_ues, cluster_prob = cluster_prob, cluster_range = cluster_range)
     access = AccessProcedure(rng,m)
     receptor = RxProcedure(m)
     perf_monitor = PerfMonitor(m, reward_criteria = reward_criteria, statistics = STATISTICS, traces = TRACES, animation = ANIMATE_STATS, resource_monitoring = RESOURCE_MONITOR)

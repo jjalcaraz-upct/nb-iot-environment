@@ -34,7 +34,8 @@ max_p = 5 # MAX NPRACH PERIOD FOR RL AGENTS
 
 # CE level configuration values
 SRP = 35.0 # reference signal receive power dBm
-threshold_list = [-116, -115, -114, -113, -112, -110, -108, -106, -104, -102, -100, -98, 0]
+# threshold_list = [-115, -114, -113, -112, -111, -110, -109, -108, -106, -104, -102, -101, -100, -98, -96, 0]
+threshold_list = [-115, -114, -113, -112, -111, -110, -109, -108, -106, -104, -102, -100, -98, -96, 0]
 
 # the last value is used to eliminate levels, e.g.
 # CE_thresholds = [-102.5, 0] --> Only CE2 and CE1 (no CE0)
@@ -58,29 +59,40 @@ for i, th_1 in enumerate(th_values):
 
 NPDCCH_sf = 8 # 4 number of consecutive NPDCCH subframes 
 
+# thr_to_n_rep = { 
+#     -116: 3, # 8
+#     -115: 3, # 8
+#     -114: 2, # 4
+#     -113: 2, # 4
+#     -112: 2, # 4
+#     -111: 1, # 2
+#     -110: 1, # 2
+#     -109: 1, # 2
+#     -108: 1, # 2
+# }
+
 thr_to_n_rep = { 
     -116: 3, # 8
     -115: 3, # 8
-    -114: 2, # 4
+    -114: 3, # 8
     -113: 2, # 4
     -112: 2, # 4
     -111: 1, # 2
-    -110: 1, # 2
-    -109: 1, # 2
-    -108: 1, # 2
+    -110: 1 # 2
 }
 
-no_rep_th = -107
+no_rep_th = -109
 
 # msg3 configuration for th_level computed using just nominal values
 msg_3_conf = {
-    -116: (2,1,16),
-    -115: (2,1,16),
+    -116: (2,1,16), # (1,3,16),
+    -115: (2,1,16), # (1,3,16),
     -114: (2,1,16),
     -113: (2,1,16),
-    -112: (2,1,8),
-    -111: (2,1,8),
-    -110: (2,1,8),
+    -112: (2,1,16), # (1,3,8),
+    -111: (2,1,8), # (1,3,8),
+    -110: (2,1,8), 
+    -109: (2,1,8),
     -108: (2,1,8),
     -107: (2,1,4),
     -106: (2,1,4),
@@ -229,7 +241,7 @@ control_default_values = {
     'delay': 0,
     'sc': 3,
     'Nrep': 1,
-    'backoff': 2, # should be larger than the largest NPRACH period
+    'backoff': 3, # (2 used in RAR opt paper) should be larger than the largest NPRACH period
     'rar_window': 6,
     'mac_timer': 2,
     'transmax': 4,
@@ -243,13 +255,15 @@ control_default_values = {
     'period_C2': 3, # 3,
     'rep_C2': 2,
     'sc_C2': 1,
-    'th_C1': 5,
-    'th_C0': 9 # max_th # 0 --> No CE0
+    'th_C1': 8, # -106
+    'th_C0': 11 # -101
+    # 'th_C1': 2, # -113
+    # 'th_C0': 7 # -108 max_th # 0 --> No CE0
 }
 
 # NODE B: NPDCCH parameters
 
-NPDCCH_period = 20 # 30, 10 ... length of the NPDCCH period in subframes (NPDCCH is always located in the 1st subframe)
+NPDCCH_period = 30 # 20 (used in RAR optimization paper), 10 ... length of the NPDCCH period in subframes (NPDCCH is always located in the 1st subframe)
 NPDCCH_sf_per_CE = [1, 2, 4] # NPDCCH repetitions per CE level
 CE_for_NPDCCH_sf_left = [0, 0, 1, 1, 2, 2, 2, 2, 2] # max CE level allowed given the NPDCCH sf left
 

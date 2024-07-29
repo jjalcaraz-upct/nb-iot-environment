@@ -131,9 +131,10 @@ class Channel:
         self.m = m
         self.m.set_channel(self)
 
-    def set_xy_loss(self, ue, A = 128.1, B = 37.6): # A = 120.9 for 900 MHz
+    def set_xy_loss(self, ue, A = 128.1, B = 37.6, x = -1, y = -1): # A = 120.9 for 900 MHz
         # TS 36.942 section 4.5 Propagation conditions and channel models (2000 MHz)
-        x, y = generate_xy(self.rng)
+        if x < 0:
+            x, y = generate_xy(self.rng)
         d, theta = location(x, y)
         R = max(d*self.range, 0.1)
         G = Gmax + antenna_pattern(theta)
@@ -147,6 +148,7 @@ class Channel:
         ue.tx_pw = Tx_pw
         ue.x = x
         ue.y = y
+        return ue
 
     def lognormal_loss(self):
         return self.rng.normal(0,sigma_F)
@@ -272,7 +274,7 @@ if __name__=='__main__':
     for t in range(10000):
         ue_count += 1
         ue = UE(ue_count, t_arrival = t, buffer = 256)
-        channel.set_xy_loss(ue)
+        ue = channel.set_xy_loss(ue)
         P_RSRP = SRP - ue.loss
         if P_RSRP < CE_thresholds[0]:
             CE_level = 2
