@@ -10,7 +10,7 @@ Created on Jan 24, 2022
 @author: juanjosealcaraz
 
 """
-
+import numpy as np
 from .user import STATE, UE, UE_states
 from .event_manager import Event, subscribe, schedule_event
 from .parameters import SRP
@@ -35,12 +35,11 @@ class Population:
     Handled events: Backoff_end, MAC_timer
     Scheduled events: Msg3, Backoff_end, MAC_timer
     '''
-    def __init__(self, rng, m, levels = [0,1,2]):
+    def __init__(self, rng, m, levels = [0,1,2], clustered = False, cluster_ues = [10, 30], cluster_prob = 0.5, cluster_range = 0.5):
         self.rng = rng
         self.m = m
         self.CE_thresholds = [-102.5, -85.0] # default values
-        self.CE_losses = [SRP + 85, SRP + 102.5, SRP + 122.5]
-        self.levels = levels # levels considered in the simulation
+        self.levels = levels # NO LONGER IN USE
         self.m.set_population(self)
 
         self.reset()
@@ -53,6 +52,15 @@ class Population:
         subscribe('Backoff_end', self.backoff_end)
         subscribe('MAC_timer', self.MAC_timeout)
 
+        # clustered population
+        self.clustered = clustered
+        if clustered:
+            self.cluster_count = 0
+            self.cluster_ues = cluster_ues
+            self.cluster_prob = cluster_prob
+            self.cluster_range = cluster_range / self.m.channel.range
+            self.cluster_center = [0, 0]
+
     def reset(self):
         # UE storage data structures
         self.ra_lists = [[], [], []] # one ra_list for each CE_level
@@ -63,6 +71,34 @@ class Population:
 
 
     ############## UE generation methods ################ 
+
+    def clustered_ue_generation(self, ue):
+        '''
+        generates ue with some of them clustered
+        '''
+        p = self.rng.random()
+        if p < self.cluster_prob:
+            # create clustered ue
+            if not self.cluster_count:
+                ue = self.m.channel.set_xy_loss(ue)
+                self.cluster_center = [ue.x, ue.y]
+                [MIN, MAX] = self.cluster_ues
+                self.cluster_count = self.rng.integers(MIN, MAX)
+            else:
+                angle = self.rng.uniform(0, 2 * np.pi)
+                # Generate a random radius between 0 and D
+                radius = self.cluster_range * np.sqrt(self.rng.uniform(0, 1))
+                # Convert polar coordinates to Cartesian coordinates
+                x = radius * np.cos(angle)
+                y = radius * np.sin(angle)
+                x = x + self.cluster_center[0]
+                y = y + self.cluster_center[1]
+                ue = self.m.channel.set_xy_loss(ue, x=x, y=y)  
+                self.cluster_count -= 1         
+        else: 
+            ue = self.m.channel.set_xy_loss(ue)
+
+        return ue
 
     def get_new_arrivals(self, t):
         '''
@@ -78,21 +114,20 @@ class Population:
             if beta_arrivals > 0:
                 ue.beta = True
                 beta_arrivals -= 1
-            CE_level = -1
-            while CE_level not in self.levels:
-                self.m.channel.set_xy_loss(ue)
-                P_RSRP = SRP - ue.loss # SRP from .parameters
-                if P_RSRP < self.CE_thresholds[0]:
-                    CE_level = 2
-                elif P_RSRP < self.CE_thresholds[1]:
-                    CE_level = 1
-                else:
-                    CE_level = 0
+
+            if self.clustered:
+                ue = self.clustered_ue_generation(ue)
+            else:
+                ue = self.m.channel.set_xy_loss(ue)
+            P_RSRP = SRP - ue.loss # SRP from .parameters
+            if P_RSRP < self.CE_thresholds[0]:
+                CE_level = 2
+            elif P_RSRP < self.CE_thresholds[1]:
+                CE_level = 1
+            else:
+                CE_level = 0
+
             ue.CE_level = CE_level
-            # if DEBUG:
-            #     if ue.CE_level == 2:
-            #         state = UE_states[ue.state]
-            #         print(f'{t}: ue {ue.id} arrives with state {state} (POPULATION)')
             self.ra_lists[ue.CE_level].append(ue)
             self.m.perf_monitor.arrival(ue.CE_level)
 
