@@ -121,7 +121,7 @@ The paper presenting the MBRL algorithm for NPRACH-CE level control:
     author={Juan J. Alcaraz, Juan-Carlos Sanchez-Aarnoutse, Alejandro-Santos Martínez-Sala and Francisco-JavierGonzalez-Casta{\~n}o},  
     journal = {Internet of Things Journal},  
     publisher = {IEEE},
-    year={Under review}  
+    year={Accepted for publication}  
 }
 
 The paper presenting the MAMBRL algorithm for uplink transmission control:
