@@ -23,7 +23,7 @@ min_value = 0.0035
 max_value = 0.374
 step = 0.002
 
-with open('rate_to_conf.json', 'r') as file:
+with open('./model/rate_to_conf.json', 'r') as file:
     rate_to_conf = json.load(file)
 
 # threshold-dependent parameters
