@@ -8,24 +8,24 @@ Created on December 13, 2021
 @author: juanjosealcaraz
 """
 
-import gym
+import gymnasium as gym
 
 class Environment(gym.Env):
     ''' 
     class for an environment. It is essentially a wrapper
     '''
-    def __init__(self, system = None):
+    def __init__(self, render_mode=None, system = None):
         self.system = system
         self.action_space = system.get_action_space()
         self.observation_space = system.get_obs_space()
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
         """
         Reset the environment 
         """
-        state, _ = self.system.reset()
+        state, info = self.system.reset()
 
-        return state # reward, done, info can't be included
+        return state, info
 
     def step(self, action):
         """
@@ -33,8 +33,8 @@ class Environment(gym.Env):
         :return: (np.ndarray, float, bool, dict) observation, reward, is the episode over?, additional information
         """
         # apply the action
-        obs, r, _, info = self.system.step(action)
-        return obs, r, False, info
+        obs, r, _, _, info = self.system.step(action)
+        return obs, r, False, False, info
 
     def render(self):
         pass
