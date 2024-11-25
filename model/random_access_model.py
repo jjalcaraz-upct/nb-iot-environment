@@ -17,7 +17,7 @@ from model.traffic_model import power_distribution_parameters, arrival_flows_est
 
 
 # detection rates
-with open('th_detection_rates.pickle', 'rb') as file:
+with open('./model/th_detection_rates.pickle', 'rb') as file:
     th_detection_rates = pickle.load(file)
 
 # msg3 link adaptation parameter configuration
@@ -32,7 +32,7 @@ RAR_window_size = par.RAR_WindowSize_list[w_i]
 NPRACH_N_sf_list = [int(np.ceil(N_rep * 5.6)) for N_rep in par.N_rep_preamble_list]
 
 # probabilities of detecting k preambles given n contenders and nsc preambles in the NPRACH
-with open('p_detections.pickle', 'rb') as file:
+with open('./model/p_detections.pickle', 'rb') as file:
     p_detections = pickle.load(file)
 
 

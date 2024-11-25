@@ -19,7 +19,7 @@ import pickle
 
 from functools import lru_cache
 
-with open('p_detections_collisions.pickle', 'rb') as file:
+with open('./model/p_detections_collisions.pickle', 'rb') as file:
     p_detections_collisions = pickle.load(file)
 
 def ml_based_estimator(detections, collisions, N):
@@ -123,8 +123,8 @@ def compute_all_probabilities():
                         p_detections_collisions[((n, s, c, r))] = p_
                 p_detections[(s,n,r)] = p_s_n_r
 
-    with open('p_detections_collisions.pickle', 'wb') as file:
+    with open('./model/p_detections_collisions.pickle', 'wb') as file:
         pickle.dump(p_detections_collisions, file)
 
-    with open('p_detections.pickle', 'wb') as file:
+    with open('./model/p_detections.pickle', 'wb') as file:
         pickle.dump(p_detections, file)

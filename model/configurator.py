@@ -23,7 +23,7 @@ msg3_RUs = [1, 2, 4]
 N_sfs_list = [4, 12, 48]
 
 # probabilities of detecting k preambles given n contenders and nsc preambles in the NPRACH
-with open('p_detections.pickle', 'rb') as file:
+with open('./model/p_detections.pickle', 'rb') as file:
     p_detections = pickle.load(file)
 
 rate_dictionaries = [[], [], []]
