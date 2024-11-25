@@ -2,7 +2,7 @@
 
 ## Description
 
-Source code of a [Narrowband Internet of things](https://en.wikipedia.org/wiki/Narrowband_IoT) (NB-IoT) environment for experimenting with reinforcement learning (RL) agents. The environment implements the NB-IoT physical layer and the medium access control (MAC) in a radio cell, in which the random access resource configuration and the parameter of each uplink transmission are controllable by one or several agents. It is possible to determine which specific parameters are controlled by each agent. The environment implements the Farama Foundation's [Gymnasium](https://gymnasium.farama.org) interface, and can interact with [Stable-Baselines3](https://stable-baselines3.readthedocs.io/en/master/) RL agents.
+Source code of a [Narrowband Internet of things](https://en.wikipedia.org/wiki/Narrowband_IoT) (NB-IoT) environment for experimenting with reinforcement learning (RL) agents. The environment implements the NB-IoT physical layer and the medium access control (MAC) in a radio cell, in which the random access configuration and the parameter of each uplink transmission are controllable by one or several agents. It is possible to determine which specific parameters are controlled by each agent. The environment implements the Farama Foundation's [Gymnasium](https://gymnasium.farama.org) interface, and can interact with [Stable-Baselines3](https://stable-baselines3.readthedocs.io/en/master/) RL agents.
 
 <img src="figures/carrier_diagram.png" align="center" width="70%"/>
 
